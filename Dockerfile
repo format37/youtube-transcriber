@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y ffmpeg
 RUN pip install ffmpeg-python
 
 # Copy the server.py file
-COPY ./server.py .
+# COPY ./server.py .
+COPY --chmod=+x ./server.py /app/
 
 # Expose port for uvicorn
 EXPOSE 8702 
@@ -22,5 +23,6 @@ EXPOSE 8702
 ENV OPENAI_API_KEY=""
 
 # Run the server
-# CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
-ENTRYPOINT ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+# ENTRYPOINT ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+
