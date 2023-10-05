@@ -4,10 +4,11 @@ import json
 URL = "http://localhost:8702/transcribe"
 
 # Video URL to transcribe
-video_url = "https://www.youtube.com/watch?v=VBba1Lsi910"
+video_url = "https://www.youtube.com/watch?v=oVXy9hDcmQs"
 
 data = {
-  "url": video_url
+  "url": video_url,
+  "language": "en"
 }
 
 headers = {

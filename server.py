@@ -21,7 +21,10 @@ class VideoUrl(BaseModel):
     url: str
     
 @app.post("/transcribe")
-async def transcribe(video: VideoUrl):
+async def transcribe(
+    video: VideoUrl,
+    language: str = "en"
+    ):
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     if OPENAI_API_KEY == '':
         raise Exception("OPENAI_API_KEY environment variable not found")
@@ -42,7 +45,7 @@ async def transcribe(video: VideoUrl):
     os.remove(filename)
 
     # Transcribe audio
-    text = recognize_whisper(audio_path, OPENAI_API_KEY)
+    text = recognize_whisper(audio_path, OPENAI_API_KEY, language)
 
     # Remove audio
     os.remove(audio_path)
@@ -86,7 +89,7 @@ def extract_audio(video_path):
         return None
 
 
-def recognize_whisper(audio_path, api_key):
+def recognize_whisper(audio_path, api_key, language):
     logger.info(f"Transcribing audio at {audio_path}")
     
     if audio_path is None:
@@ -106,7 +109,7 @@ def recognize_whisper(audio_path, api_key):
             file=audio_file,
             model="whisper-1",
             response_format="text",
-            language="ru"
+            language=language
         )
 
     # Directly return the response as it's already a string
