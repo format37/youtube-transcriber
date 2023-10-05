@@ -22,4 +22,5 @@ EXPOSE 8702
 ENV OPENAI_API_KEY=""
 
 # Run the server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+# CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+ENTRYPOINT ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
