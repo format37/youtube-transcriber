@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y ffmpeg
 RUN pip install ffmpeg-python
 
 # Copy the server.py file
-COPY server.py .
+COPY ./server.py .
 
 # Expose port for uvicorn
 EXPOSE 8702 
