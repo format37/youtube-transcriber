@@ -108,8 +108,7 @@ def recognize_whisper(audio_path, api_key, language):
         response = openai.Audio.transcribe(
             file=audio_file,
             model="whisper-1",
-            response_format="text",
-            language=language
+            response_format="text"
         )
 
     # Directly return the response as it's already a string
