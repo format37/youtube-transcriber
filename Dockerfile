@@ -20,7 +20,7 @@ RUN pip install ffmpeg-python
 COPY my_server.py .
 
 # Expose port for uvicorn
-EXPOSE 8702 
+# EXPOSE 8702 
 
 # Define environment variable for OpenAI key 
 ENV OPENAI_API_KEY="x"
@@ -28,5 +28,5 @@ ENV OPENAI_API_KEY="x"
 # Run the server
 # ENTRYPOINT ["uvicorn", "my_server:app", "--host", "0.0.0.0", "--port", "8702"]
 # CMD ["uvicorn", "my_server:app", "--host", "0.0.0.0", "--port", "8702"]
-CMD ["uvicorn", "--help"]
-
+# CMD ["uvicorn", "--help"]
+CMD ["python", "--version"]
