@@ -1,5 +1,6 @@
 # Use Python 3.9 image as the base
-FROM python:3.9
+# FROM python:3.9
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9-2023-10-02
 
 # Set the working directory
 WORKDIR /app
@@ -13,7 +14,7 @@ RUN apt-get update && apt-get install -y ffmpeg
 RUN pip install ffmpeg-python
 
 # Install uvicorn
-RUN apt-get install -y uvicorn
+# RUN apt-get install -y uvicorn
 
 # Copy the server.py file
 COPY server.py .
