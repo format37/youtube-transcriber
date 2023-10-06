@@ -1,3 +1,3 @@
 #!/bin/bash
 # Build image
-docker-compose build
+sudo docker-compose build

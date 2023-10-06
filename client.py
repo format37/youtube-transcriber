@@ -4,11 +4,10 @@ import json
 URL = "http://localhost:8702/transcribe"
 
 # Video URL to transcribe
-video_url = "https://www.youtube.com/watch?v=oVXy9hDcmQs"
+video_url = "https://youtu.be/iJmWItRvfHM?si=3IxfgTitJYcv9T9d"
 
 data = {
-  "url": video_url,
-  "language": "en"
+  "url": video_url
 }
 
 headers = {
@@ -17,7 +16,6 @@ headers = {
 
 response = requests.post(URL, json=data, headers=headers)
 
-# print(response.json()["transcription"])
 # Save to txt file
 with open("transcription.txt", "w") as f:
     f.write(response.json()["transcription"])

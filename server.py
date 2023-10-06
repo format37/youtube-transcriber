@@ -8,6 +8,8 @@ import uuid
 import os
 import ffmpeg
 import uvicorn
+import math
+from pydub import AudioSegment
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -22,8 +24,7 @@ class VideoUrl(BaseModel):
     
 @app.post("/transcribe")
 async def transcribe(
-    video: VideoUrl,
-    language: str = "en"
+    video: VideoUrl
     ):
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     if OPENAI_API_KEY == '':
@@ -45,7 +46,7 @@ async def transcribe(
     os.remove(filename)
 
     # Transcribe audio
-    text = recognize_whisper(audio_path, OPENAI_API_KEY, language)
+    text = recognize_whisper(audio_path, OPENAI_API_KEY)
 
     # Remove audio
     os.remove(audio_path)
@@ -89,29 +90,51 @@ def extract_audio(video_path):
         return None
 
 
-def recognize_whisper(audio_path, api_key, language):
-    logger.info(f"Transcribing audio at {audio_path}")
-    
-    if audio_path is None:
-        print("Error extracting audio")
-        return
+def recognize_whisper(audio_path, api_key):
 
-    # OpenAI's Python package uses environment variables for API keys,
-    # but since you're reading from a file, we'll set it directly.
+    audio = AudioSegment.from_file(audio_path)
+
+    chunk_size_ms = 10 * 60 * 1000 # 10 minutes
+
+    start = 0
+    end = chunk_size_ms
+
+    full_text = ""
+
+    while start < len(audio):
+
+        logger.info(f"Processing chunk from {start/1000} to {end/1000} second")
+
+        chunk = audio[start:end]
+
+        # Export and transcribe chunk 
+        unique_id = str(uuid.uuid4())
+        chunk_path = f"/tmp/{unique_id}.mp3"
+        chunk.export(chunk_path, format="mp3")
+
+        text = transcribe_chunk(chunk_path, api_key)
+
+        full_text += text
+
+        # Update start and end for next chunk
+        start += chunk_size_ms
+        end += chunk_size_ms
+
+        os.remove(chunk_path)
+
+    return full_text
+
+def transcribe_chunk(audio_path, api_key):
+
     openai.api_key = api_key
 
-    # Load the audio file
-    logging.info(f'Loading audio file from {audio_path}...')
     with open(audio_path, "rb") as audio_file:
-        # Transcribe the audio
-        logging.info('Transcribing the audio...')
         response = openai.Audio.transcribe(
-            file=audio_file,
-            model="whisper-1",
-            response_format="text"
+        file=audio_file,  
+        model="whisper-1",
+        response_format="text"
         )
 
-    # Directly return the response as it's already a string
     return response
 
 
