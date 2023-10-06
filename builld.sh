@@ -2,10 +2,10 @@
 # sudo docker build -t youtube-transcriber .
 
 # Prompt for API key
-read -p "Enter OpenAI API key: " OPENAI_API_KEY  
+# read -p "Enter OpenAI API key: " OPENAI_API_KEY  
 
 # Set as environment variable
-export OPENAI_API_KEY=$OPENAI_API_KEY  
+# export OPENAI_API_KEY=$OPENAI_API_KEY  
 
 # Build image
 docker-compose build

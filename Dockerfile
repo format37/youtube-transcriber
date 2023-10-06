@@ -1,6 +1,6 @@
 # Use Python 3.9 image as the base
-# FROM python:3.9
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9-2023-10-02
+FROM python:3.9
+# FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9-2023-10-02
 
 # Set the working directory
 WORKDIR /app
@@ -27,6 +27,6 @@ ENV OPENAI_API_KEY="x"
 
 # Run the server
 # ENTRYPOINT ["uvicorn", "my_server:app", "--host", "0.0.0.0", "--port", "8702"]
-# CMD ["uvicorn", "my_server:app", "--host", "0.0.0.0", "--port", "8702"]
+CMD ["uvicorn", "my_server:app", "--host", "0.0.0.0", "--port", "8702"]
 # CMD ["uvicorn", "--help"]
-CMD ["python", "--version"]
+# CMD ["python", "--version"]
