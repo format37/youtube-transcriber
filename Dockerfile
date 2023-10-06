@@ -12,14 +12,17 @@ RUN pip install -r requirements.txt
 RUN apt-get update && apt-get install -y ffmpeg
 RUN pip install ffmpeg-python
 
+# Install uvicorn
+RUN apt-get install -y uvicorn
+
 # Copy the server.py file
-COPY ./server.py .
+COPY server.py .
 
 # Expose port for uvicorn
 EXPOSE 8702 
 
 # Define environment variable for OpenAI key 
-ENV OPENAI_API_KEY=""
+ENV OPENAI_API_KEY="x"
 
 # Run the server
 # ENTRYPOINT ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
