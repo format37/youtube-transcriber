@@ -5,6 +5,7 @@ services:
   app:
     build: . 
     image: youtube-transcriber
+    restart: always
     environment:
       - OPENAI_API_KEY=x
     network_mode: host

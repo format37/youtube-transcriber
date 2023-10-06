@@ -94,6 +94,12 @@ def recognize_whisper(audio_path, api_key):
 
     audio = AudioSegment.from_file(audio_path)
 
+    # If audio len is bigger than 3 hours, decline the transcribation
+    if len(audio) > 3 * 60 * 60 * 1000:
+        logger.info("Declined: Audio is bigger than 3 hours")
+        return "Declined: Audio is bigger than 3 hours"
+
+
     chunk_size_ms = 10 * 60 * 1000 # 10 minutes
 
     start = 0
