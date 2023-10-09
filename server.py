@@ -11,6 +11,7 @@ import uvicorn
 import math
 from pydub import AudioSegment
 import subprocess
+from telebot import TeleBot
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -20,26 +21,37 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-class VideoUrl(BaseModel):
+"""class VideoUrl(BaseModel):
+    url: str"""
+
+class TranscriptionRequest(BaseModel):
     url: str
+    chat_id: str
+    message_id: str
+    bot_token: str
     
 @app.post("/transcribe")
-async def transcribe(
-    video: VideoUrl,
-    chat_id: str = None,
-    message_id: str = None
-    ):
+async def transcribe(request_data: TranscriptionRequest):
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     if OPENAI_API_KEY == '':
         raise Exception("OPENAI_API_KEY environment variable not found")
         return {"error": "OPENAI_API_KEY environment variable not found"}
 
-    url = video.url
+    url = request_data.url
+    chat_id = int(request_data.chat_id)
+    message_id = int(request_data.message_id)
+    bot_token = request_data.bot_token
 
     # Log start of download
     logger.info("Starting video download from url: " + url)
     logger.info("Chat id: " + str(chat_id))
     logger.info("Message id: " + str(message_id))
+    logger.info("Bot token: " + bot_token)
+    
+
+    # Initialize the bot
+    bot_token = "YOUR_BOT_TOKEN_HERE"
+    bot = TeleBot(bot_token)
     
     # Download video
     filename = download_video(url)
