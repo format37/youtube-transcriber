@@ -10,6 +10,7 @@ import ffmpeg
 import uvicorn
 import math
 from pydub import AudioSegment
+import subprocess
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +25,9 @@ class VideoUrl(BaseModel):
     
 @app.post("/transcribe")
 async def transcribe(
-    video: VideoUrl
+    video: VideoUrl,
+    chat_id: str = None,
+    message_id: str = None
     ):
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     if OPENAI_API_KEY == '':
@@ -35,6 +38,8 @@ async def transcribe(
 
     # Log start of download
     logger.info("Starting video download from url: " + url)
+    logger.info("Chat id: " + str(chat_id))
+    logger.info("Message id: " + str(message_id))
     
     # Download video
     filename = download_video(url)
@@ -69,7 +74,7 @@ def download_video(url):
     return outname
 
 
-def extract_audio(video_path):
+def extract_audio_fast(video_path):
 
     logger.info(f"Extracting audio from {video_path}")
 
@@ -87,6 +92,33 @@ def extract_audio(video_path):
     
     except Exception as e:
         logger.error("Error extracting audio: " + str(e))
+        return None
+
+
+def extract_audio(video_path):
+    logger.info(f"Extracting audio from {video_path}")
+
+    # Generate an unique mp3 audio file name
+    audio_path = str(uuid.uuid4()) + ".mp3"
+
+    # Command to extract audio using ffmpeg
+    cmd = [
+        'ffmpeg',
+        '-i', video_path,    # input video path
+        '-q:a', '0',         # best audio quality
+        '-map', 'a',         # map only audio stream
+        '-y',                # overwrite output file if it exists
+        audio_path           # output audio path
+    ]
+
+    try:
+        # Run the command and wait for it to complete
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logger.info(f"Audio extracted to {audio_path}")
+        return audio_path
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error extracting audio: {e.stderr.decode('utf-8')}")
         return None
 
 
