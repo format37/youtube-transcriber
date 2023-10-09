@@ -176,8 +176,70 @@ def extract_audio(video_path):
         logger.error(f"Error extracting audio: {e.stderr.decode('utf-8')}")
         return None
 
+def split_audio_ffmpeg(audio_path, chunk_length=10*60):
+    """
+    Splits the audio file into chunks using ffmpeg.
+    Returns a list of paths to the chunks.
+    """
+    # Get the duration of the audio in seconds
+    cmd_duration = f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {audio_path}"
+    duration = float(os.popen(cmd_duration).read())
+
+    # Calculate number of chunks
+    chunks_count = int(duration // chunk_length) + (1 if duration % chunk_length > 0 else 0)
+
+    chunk_paths = []
+
+    for i in range(chunks_count):
+        start_time = i * chunk_length
+        # Unique filename for the chunk
+        chunk_filename = f"/tmp/{uuid.uuid4()}.mp3"
+        # Use ffmpeg to extract a chunk of the audio
+        cmd_extract = f"ffmpeg -ss {start_time} -t {chunk_length} -i {audio_path} -acodec copy {chunk_filename}"
+        os.system(cmd_extract)
+
+        chunk_paths.append(chunk_filename)
+
+    return chunk_paths
+
 
 def recognize_whisper(
+    audio_path, 
+    api_key,
+    chat_id,
+    message_id,
+    bot
+    ):
+    
+    # Split the audio into chunks
+    chunk_paths = split_audio_ffmpeg(audio_path)
+
+    full_text = ""
+
+    for idx, chunk_path in enumerate(chunk_paths):
+
+        logger.info(f"Processing chunk {idx+1} of {len(chunk_paths)}")
+
+        bot.edit_message_text(
+            f"Transcribing audio.. ({idx+1}/{len(chunk_paths)})",
+            chat_id=chat_id,
+            message_id=message_id
+        )
+
+        # Load chunk into memory using pydub
+        chunk_audio = AudioSegment.from_file(chunk_path)
+
+        # Transcribe chunk
+        text = transcribe_chunk(chunk_path, api_key)
+        full_text += text
+
+        # Remove the temporary chunk file
+        os.remove(chunk_path)
+
+    return full_text
+
+
+def recognize_whisper_memory_expensive(
     audio_path, 
     api_key,
     chat_id,
@@ -231,6 +293,8 @@ def recognize_whisper(
         os.remove(chunk_path)
 
     return full_text
+
+
 
 def transcribe_chunk(audio_path, api_key):
 
