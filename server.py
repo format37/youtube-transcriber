@@ -32,6 +32,7 @@ class TranscriptionRequest(BaseModel):
     
 @app.post("/transcribe")
 async def transcribe(request_data: TranscriptionRequest):
+    # try:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     if OPENAI_API_KEY == '':
         raise Exception("OPENAI_API_KEY environment variable not found")
@@ -50,11 +51,22 @@ async def transcribe(request_data: TranscriptionRequest):
     
 
     # Initialize the bot
-    bot_token = "YOUR_BOT_TOKEN_HERE"
     bot = TeleBot(bot_token)
+
+    bot.edit_message_text(
+            "Downloading video..",
+            chat_id=chat_id,
+            message_id=message_id
+        )
     
     # Download video
     filename = download_video(url)
+
+    bot.edit_message_text(
+            "Extracting audio..",
+            chat_id=chat_id,
+            message_id=message_id
+        )
 
     # Extract audio
     audio_path = extract_audio(filename)
@@ -63,13 +75,26 @@ async def transcribe(request_data: TranscriptionRequest):
     os.remove(filename)
 
     # Transcribe audio
-    text = recognize_whisper(audio_path, OPENAI_API_KEY)
+    text = recognize_whisper(
+        audio_path, 
+        OPENAI_API_KEY,
+        chat_id,
+        message_id,
+        bot
+        )
 
     # Remove audio
     os.remove(audio_path)
 
     # Log transcription length
     logger.info("Transcription length: " + str(len(text)))
+
+    # Edit message that Job has finished with text len
+    bot.edit_message_text(
+            f"Transcription finished. Text length: {len(text)}",
+            chat_id=chat_id,
+            message_id=message_id
+        )
     
     return {"transcription": text}
 
@@ -134,7 +159,13 @@ def extract_audio(video_path):
         return None
 
 
-def recognize_whisper(audio_path, api_key):
+def recognize_whisper(
+    audio_path, 
+    api_key,
+    chat_id,
+    message_id,
+    bot
+    ):
 
     audio = AudioSegment.from_file(audio_path)
 
@@ -151,9 +182,18 @@ def recognize_whisper(audio_path, api_key):
 
     full_text = ""
 
+    chunks_count = math.ceil(len(audio) / chunk_size_ms)
+    current_chunk = 0
+
     while start < len(audio):
 
         logger.info(f"Processing chunk from {start/1000} to {end/1000} second")
+
+        bot.edit_message_text(
+            f"Transcribing audio.. ({current_chunk}/{chunks_count})",
+            chat_id=chat_id,
+            message_id=message_id
+        )
 
         chunk = audio[start:end]
 
