@@ -32,71 +32,81 @@ class TranscriptionRequest(BaseModel):
     
 @app.post("/transcribe")
 async def transcribe(request_data: TranscriptionRequest):
-    # try:
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    if OPENAI_API_KEY == '':
-        raise Exception("OPENAI_API_KEY environment variable not found")
-        return {"error": "OPENAI_API_KEY environment variable not found"}
+    try:
+        OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+        if OPENAI_API_KEY == '':
+            raise Exception("OPENAI_API_KEY environment variable not found")
+            return {"error": "OPENAI_API_KEY environment variable not found"}
 
-    url = request_data.url
-    chat_id = int(request_data.chat_id)
-    message_id = int(request_data.message_id)
-    bot_token = request_data.bot_token
+        url = request_data.url
+        chat_id = int(request_data.chat_id)
+        message_id = int(request_data.message_id)
+        bot_token = request_data.bot_token
 
-    # Log start of download
-    logger.info("Starting video download from url: " + url)
-    logger.info("Chat id: " + str(chat_id))
-    logger.info("Message id: " + str(message_id))
-    logger.info("Bot token: " + bot_token)
-    
+        # Log start of download
+        """logger.info("Starting video download from url: " + url)
+        logger.info("Chat id: " + str(chat_id))
+        logger.info("Message id: " + str(message_id))
+        logger.info("Bot token: " + bot_token)"""
+        
 
-    # Initialize the bot
-    bot = TeleBot(bot_token)
+        # Initialize the bot
+        bot = TeleBot(bot_token)
 
-    bot.edit_message_text(
-            "Downloading video..",
-            chat_id=chat_id,
-            message_id=message_id
-        )
-    
-    # Download video
-    filename = download_video(url)
+        bot.edit_message_text(
+                "Downloading video..",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        
+        # Download video
+        filename = download_video(url)
 
-    bot.edit_message_text(
-            "Extracting audio..",
-            chat_id=chat_id,
-            message_id=message_id
-        )
+        bot.edit_message_text(
+                "Extracting audio..",
+                chat_id=chat_id,
+                message_id=message_id
+            )
 
-    # Extract audio
-    audio_path = extract_audio(filename)
+        # Extract audio
+        audio_path = extract_audio(filename)
 
-    # Remove video
-    os.remove(filename)
+        # Remove video
+        os.remove(filename)
 
-    # Transcribe audio
-    text = recognize_whisper(
-        audio_path, 
-        OPENAI_API_KEY,
-        chat_id,
-        message_id,
-        bot
-        )
+        # Transcribe audio
+        text = recognize_whisper(
+            audio_path, 
+            OPENAI_API_KEY,
+            chat_id,
+            message_id,
+            bot
+            )
 
-    # Remove audio
-    os.remove(audio_path)
+        # Remove audio
+        os.remove(audio_path)
 
-    # Log transcription length
-    logger.info("Transcription length: " + str(len(text)))
+        # Log transcription length
+        logger.info("Transcription length: " + str(len(text)))
 
-    # Edit message that Job has finished with text len
-    bot.edit_message_text(
-            f"Transcription finished. Text length: {len(text)}",
-            chat_id=chat_id,
-            message_id=message_id
-        )
-    
-    return {"transcription": text}
+        # Edit message that Job has finished with text len
+        bot.edit_message_text(
+                f"Transcription finished. Text length: {len(text)}",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        
+        return {"transcription": text}
+    except Exception as e:
+        # Log error
+        logger.error("Error: " + str(e))
+        # Edit message that Job has finished with error
+        bot.edit_message_text(
+                f"Error: {str(e)}",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        return {"error": str(e)}
 
 
 def download_video(url):
@@ -183,7 +193,7 @@ def recognize_whisper(
     full_text = ""
 
     chunks_count = math.ceil(len(audio) / chunk_size_ms)
-    current_chunk = 0
+    current_chunk = 1
 
     while start < len(audio):
 
