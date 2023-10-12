@@ -41,7 +41,7 @@ async def transcribe(request_data: TranscriptionRequest):
         bot_token = request_data.bot_token
 
         # Log start of download
-        logger.info(str(chat_id)+">> Starting video download from url: " + url)    
+        logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
 
         # Initialize the bot
         bot = TeleBot(bot_token)
@@ -88,7 +88,7 @@ async def transcribe(request_data: TranscriptionRequest):
         os.remove(audio_path)
 
         # Log transcription length
-        logger.info(str(chat_id)+">> Transcription length: " + str(len(text)))
+        logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
 
         # Edit message that Job has finished with text len
         bot.edit_message_text(
@@ -210,7 +210,7 @@ def recognize_whisper(
     full_text = ""
 
     for idx, chunk_path in enumerate(chunk_paths):
-        logger.info(f"{chat_id}>> Processing chunk {idx+1} of {len(chunk_paths)}")
+        logger.info(f"[{chat_id}] Processing chunk {idx+1} of {len(chunk_paths)}")
 
         bot.edit_message_text(
             f"Transcribing audio.. ({idx+1}/{len(chunk_paths)})",
