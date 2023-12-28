@@ -177,8 +177,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Add uuid before file_name
         file_name = f'{uuid.uuid4().hex}_{file_name}'
         file_path = os.path.join(data_path, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file_bytes, buffer)
+        """with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file_bytes, buffer)"""
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
         # Load the audio file
         original_audio = AudioSegment.from_file(file_path)
         
