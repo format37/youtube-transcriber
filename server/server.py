@@ -112,19 +112,13 @@ def transcribe(request_data: TranscriptionRequest):
 
     original_message_id = request_data.message_id
     # Retrieve message object from original_message_id
-    # original_message = bot.get_message(chat_id, original_message_id)
     message_text = "Job started. Please wait for transcription to be completed."
-    # update_message = bot.reply_to(original_message, "Job started. Please wait for transcription to be completed.")
     update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
     logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
-    # message_id = update_message.message_id
-    """INFO:server:[106129214] Update message: {'ok': True, 'result': {'message_id': 216, 'from': {'id': 6387301346, 'is_bot': True, 'first_name': 'youtubesttbot', 'username': 'youtubesttbot'}, 'chat': {'id': 106129214, 'first_name': 'Alex', 'username': 'format37', 'type': 'private'}, 'date': 1703760315, 'reply_to_message': {'message_id': 215, 'from': {'id': 106129214, 'is_bot': False, 'first_name': 'Alex', 'username': 'format37', 'language_code': 'en', 'is_premium': True}, 'chat': {'id': 106129214, 'first_name': 'Alex', 'username': 'format37', 'type': 'private'}, 'date': 1703760315, 'text': 'https://youtube.com/shorts/TG3Jvd39358?si=AjNrXOZQhNaEwE3o', 'entities': [{'offset': 0, 'length': 58, 'type': 'url'}]}, 'text': 'Job started. Please wait for transcription to be completed.'}}"""
     message_id = update_message['result']['message_id']
 
     # Log start of download
     logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
-
-    
 
     bot.edit_message_text(
             "Downloading video..",
@@ -177,17 +171,26 @@ def transcribe(request_data: TranscriptionRequest):
             message_id=message_id
         )
     
-    return {"transcription": text}
-    """except Exception as e:
-        # Log error
-        logger.error("Error: " + str(e))
-        # Edit message that Job has finished with error
-        bot.edit_message_text(
-                f"Error: {str(e)}",
-                chat_id=chat_id,
-                message_id=message_id
+    # Send the transcription
+    try:
+        filename = f'data/{uuid.uuid4().hex}.txt'
+
+        with open(filename, 'w') as f:
+            f.write(text)
+
+        with open(filename, 'rb') as f:
+            bot.send_document(
+                chat_id, 
+                f
             )
-        return {"transcription": str(e)}"""
+        os.remove(filename)
+    except Exception as e:
+        logger.error(e)
+    
+    return JSONResponse(content={
+            "type": "empty",
+            "body": ""
+            })    
 
 
 def download_video(url):
