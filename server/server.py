@@ -13,6 +13,7 @@ import math
 from pydub import AudioSegment
 import subprocess
 from telebot import TeleBot
+import requests
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -84,6 +85,17 @@ async def call_message(request: Request, authorization: str = Header(None)):
             })
 
 
+def send_reply(bot_token, chat_id, message_id, text):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': text,
+        'reply_to_message_id': message_id
+    }
+    response = requests.post(url, data=payload)
+    return response.json()
+
+
 def transcribe(request_data: TranscriptionRequest):
     # try:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
@@ -100,9 +112,11 @@ def transcribe(request_data: TranscriptionRequest):
 
     original_message_id = request_data.message_id
     # Retrieve message object from original_message_id
-    original_message = bot.get_message(chat_id, original_message_id)
-
-    update_message = bot.reply_to(original_message, "Job started. Please wait for transcription to be completed.")
+    # original_message = bot.get_message(chat_id, original_message_id)
+    message_text = "Job started. Please wait for transcription to be completed."
+    # update_message = bot.reply_to(original_message, "Job started. Please wait for transcription to be completed.")
+    update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
+    logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
     message_id = update_message.message_id
 
     # Log start of download
