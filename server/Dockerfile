@@ -2,7 +2,7 @@
 FROM python:3.9
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /server
 
 # Copy requirements file and install dependencies
 COPY requirements.txt .
@@ -19,4 +19,4 @@ COPY server.py .
 EXPOSE 8702
 
 # Run the server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
+CMD ["uvicorn", "server:server", "--host", "0.0.0.0", "--port", "8702"]
