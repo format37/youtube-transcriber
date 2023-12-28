@@ -29,6 +29,67 @@ class TranscriptionRequest(BaseModel):
     message_id: int
     bot_token: str
 
+# This function receives an audio file from telegram user
+# Then it converts to correct format and sends to openai for transcribation
+@app.post("/audio")
+async def call_audio(request: Request, authorization: str = Header(None)):
+    logger.info('post: audio')
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+    
+    if token:
+        logger.info(f'Bot token: {token}')
+        pass
+    else:
+        answer = 'Bot token not found. Please contact the administrator.'
+        return JSONResponse(content={
+            "type": "text",
+            "body": str(answer)
+        })
+    
+    message = await request.json()
+    logger.info(f'message: {message}')
+
+    # Return if it is a group
+    if message['chat']['type'] != 'private':
+        return JSONResponse(content={
+            "type": "empty",
+            "body": ""
+            })
+    
+    answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
+    data_path = './data/'
+    
+    # Check if user is in user_list
+    # Read user_list from ./data/users.txt
+    with open(data_path + 'users.txt', 'r') as f:
+        user_list = f.read().splitlines()
+    if str(message['from']['id']) not in user_list:
+        answer = "You are not authorized to use this bot.\n"
+        answer += "Please forward this message to the administrator.\n"
+        answer += f'User id: {message["from"]["id"]}'
+        return JSONResponse(content={
+            "type": "text",
+            "body": str(answer)
+            })
+    # Save file to ./data/
+    filename = f'./data/{uuid.uuid4().hex}.ogg'
+    with open(filename, 'wb') as f:
+        f.write(request.body())
+        logger.info(f'File saved to {filename}')
+    
+    # Convert audio to correct format: 
+    
+
+    """# Load your existing MP3 file
+    audio = AudioSegment.from_file("audio1377242054.m4a", format="m4a")
+    # Change the frame rate to 16000 Hz
+    audio = audio.set_frame_rate(16000)
+    # Export the result
+    audio.export("output.mp3", format="mp3")"""
+    
+
 
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
