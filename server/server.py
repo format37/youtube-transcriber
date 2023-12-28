@@ -163,81 +163,119 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "text",
             "body": str(answer)
             })
-    
-    # Add user CMD
-    if message['text'].startswith('/add'):
-        # Check is current user in atdmins.txt
-        admins = []
-        with open(data_path + 'admins.txt', 'r') as f:
-            admins = f.read().splitlines()
-        if str(message['from']['id']) not in admins:
-            answer = "You are not authorized to use this command."
-            return JSONResponse(content={
-                "type": "text",
-                "body": str(answer)
-                })
-        # split cmd from format /add <user_id>
-        cmd = message['text'].split(' ')
-        if len(cmd) != 2:
-            answer = "Invalid command format. Please use /add <user_id>."
-            return JSONResponse(content={
-                "type": "text",
-                "body": str(answer)
-                })
-        # add user_id to user_list
-        user_id = cmd[1]
-        user_list.append(user_id)
-        # write user_list to ./data/users.txt
-        with open(data_path + 'users.txt', 'w') as f:
-            f.write('\n'.join(user_list))
-        answer = f'User {user_id} added successfully.'        
+    if 'audio' in message:
+        # Initialize the bot
+        bot = TeleBot(token)
+        # Get the audio file ID
+        file_id = message['audio'].file_id
+        logger.info(f'file_id: {file_id}')
+        file_info = bot.get_file(file_id)
+        # Download the file contents 
+        file_bytes = bot.download_file(file_info.file_path)
+        logger.info(f'file_bytes: {len(file_bytes)}')
+        """logger.info('post: audio')
+        # Save the audio file to disk
+        filename = f'{uuid.uuid4().hex}.{audio.filename.split(".")[-1]}'
+        file_path = os.path.join("/data", filename)
+        
+        logger.info(f"Saving audio to {file_path}")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+            logger.info(f"Audio saved to {file_path}")
+            
+            
+        # Load the audio file
+        original_audio = AudioSegment.from_file(file_path)
+        
+        # Convert it to 16khz mono MP3
+        converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
+        logger.info(f"Audio converted to {file_path}")
 
-    # Remove user CMD
-    elif message['text'].startswith('/remove'):
-        # Check is current user in atdmins.txt
-        admins = []
-        with open(data_path + 'admins.txt', 'r') as f:
-            admins = f.read().splitlines()
-        if str(message['from']['id']) not in admins:
-            answer = "You are not authorized to use this command."
-            return JSONResponse(content={
-                "type": "text",
-                "body": str(answer)
-                })
-        # split cmd from format /remove <user_id>
-        cmd = message['text'].split(' ')
-        if len(cmd) != 2:
-            answer = "Invalid command format. Please use /remove <user_id>."
-            return JSONResponse(content={
-                "type": "text",
-                "body": str(answer)
-                })
-        # remove user_id from user_list
-        user_id = cmd[1]
-        user_list.remove(user_id)
-        # write user_list to ./data/users.txt
-        with open(data_path + 'users.txt', 'w') as f:
-            f.write('\n'.join(user_list))
-        answer = f'User {user_id} removed successfully.'
-
-    # Youtube transcription CMD
-    elif message['text'].startswith("https://www.youtube.com/") or \
-        message['text'].startswith("https://youtube.com/") or \
-        message['text'].startswith("https://www.youtu.be/") or \
-        message['text'].startswith("https://youtu.be/"):
-        transcription_request = TranscriptionRequest(
-            url=message['text'],
-            chat_id=message['chat']['id'],
-            message_id=message['message_id'],
-            bot_token=token
-        )
-        transcribe(transcription_request)
+        # Send the converted audio to OpenAI for transcription
+        openai.transcribe(file_path)
+        logger.info(f"Audio sent to OpenAI for transcription")
+        
+        # return {"message": "Audio received and processed"}
         return JSONResponse(content={
-            "type": "empty",
-            "body": ""
-            })
-    else:
-        answer = 'Please send a youtube link to transcribe the video to text.'
+                "type": "text",
+                "body": str("Audio received and processed")
+            })"""
+    
+    if 'text' in message:
+        # Add user CMD
+        if message['text'].startswith('/add'):
+            # Check is current user in atdmins.txt
+            admins = []
+            with open(data_path + 'admins.txt', 'r') as f:
+                admins = f.read().splitlines()
+            if str(message['from']['id']) not in admins:
+                answer = "You are not authorized to use this command."
+                return JSONResponse(content={
+                    "type": "text",
+                    "body": str(answer)
+                    })
+            # split cmd from format /add <user_id>
+            cmd = message['text'].split(' ')
+            if len(cmd) != 2:
+                answer = "Invalid command format. Please use /add <user_id>."
+                return JSONResponse(content={
+                    "type": "text",
+                    "body": str(answer)
+                    })
+            # add user_id to user_list
+            user_id = cmd[1]
+            user_list.append(user_id)
+            # write user_list to ./data/users.txt
+            with open(data_path + 'users.txt', 'w') as f:
+                f.write('\n'.join(user_list))
+            answer = f'User {user_id} added successfully.'        
+
+        # Remove user CMD
+        elif message['text'].startswith('/remove'):
+            # Check is current user in atdmins.txt
+            admins = []
+            with open(data_path + 'admins.txt', 'r') as f:
+                admins = f.read().splitlines()
+            if str(message['from']['id']) not in admins:
+                answer = "You are not authorized to use this command."
+                return JSONResponse(content={
+                    "type": "text",
+                    "body": str(answer)
+                    })
+            # split cmd from format /remove <user_id>
+            cmd = message['text'].split(' ')
+            if len(cmd) != 2:
+                answer = "Invalid command format. Please use /remove <user_id>."
+                return JSONResponse(content={
+                    "type": "text",
+                    "body": str(answer)
+                    })
+            # remove user_id from user_list
+            user_id = cmd[1]
+            user_list.remove(user_id)
+            # write user_list to ./data/users.txt
+            with open(data_path + 'users.txt', 'w') as f:
+                f.write('\n'.join(user_list))
+            answer = f'User {user_id} removed successfully.'
+
+        # Youtube transcription CMD
+        elif message['text'].startswith("https://www.youtube.com/") or \
+            message['text'].startswith("https://youtube.com/") or \
+            message['text'].startswith("https://www.youtu.be/") or \
+            message['text'].startswith("https://youtu.be/"):
+            transcription_request = TranscriptionRequest(
+                url=message['text'],
+                chat_id=message['chat']['id'],
+                message_id=message['message_id'],
+                bot_token=token
+            )
+            transcribe(transcription_request)
+            return JSONResponse(content={
+                "type": "empty",
+                "body": ""
+                })
+        else:
+            answer = 'Please send a youtube link to transcribe the video to text.'
 
     return JSONResponse(content={
             "type": "text",
