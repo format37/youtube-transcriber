@@ -91,16 +91,18 @@ def transcribe(request_data: TranscriptionRequest):
         raise Exception("OPENAI_API_KEY environment variable not found")
         return {"error": "OPENAI_API_KEY environment variable not found"}
 
+    bot_token = request_data.bot_token
+    # Initialize the bot
+    bot = TeleBot(bot_token)
+
     url = request_data.url
     chat_id = request_data.chat_id
 
     original_message_id = request_data.message_id
-    bot_token = request_data.bot_token
+    # Retrieve message object from original_message_id
+    original_message = bot.get_message(chat_id, original_message_id)
 
-    # Initialize the bot
-    bot = TeleBot(bot_token)
-
-    update_message = bot.reply_to(original_message_id, "Job started. Please wait for transcription to be completed.")
+    update_message = bot.reply_to(original_message, "Job started. Please wait for transcription to be completed.")
     message_id = update_message.message_id
 
     # Log start of download
