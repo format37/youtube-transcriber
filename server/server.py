@@ -163,7 +163,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "text",
             "body": str(answer)
             })
-    if 'audio' in message:
+    if 'audio' in message or 'voice' in message:
         # Initialize the bot
         bot = TeleBot(token)
         # Get the audio file ID
