@@ -58,9 +58,19 @@ async def call_message(request: Request, authorization: str = Header(None)):
             })
     
     answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
-    # conf_path = './data/user_conf/'
-    # config = read_config(conf_path, message['from']['id'])
     data_path = './data/'
+    # Read user_list from ./data/user_list.txt
+    with open(data_path + 'user_list.txt', 'r') as f:
+        user_list = f.read().splitlines()
+
+    if str(message['from']['id']) not in user_list:
+        answer = f'Your user id is {message["from"]["id"]}.\n'
+        answer += "You are not authorized to use this bot.\n"
+        answer += "Please forward this message to the administrator."
+        return JSONResponse(content={
+            "type": "text",
+            "body": str(answer)
+            })
 
     if message['text'].startswith("https://www.youtube.com/") or \
         message['text'].startswith("https://youtube.com/") or \
@@ -97,100 +107,103 @@ def send_reply(bot_token, chat_id, message_id, text):
 
 
 def transcribe(request_data: TranscriptionRequest):
-    # try:
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    if OPENAI_API_KEY == '':
-        raise Exception("OPENAI_API_KEY environment variable not found")
-        return {"error": "OPENAI_API_KEY environment variable not found"}
+    try:
+        OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+        if OPENAI_API_KEY == '':
+            raise Exception("OPENAI_API_KEY environment variable not found")
 
-    bot_token = request_data.bot_token
-    # Initialize the bot
-    bot = TeleBot(bot_token)
+        bot_token = request_data.bot_token
+        # Initialize the bot
+        bot = TeleBot(bot_token)
 
-    url = request_data.url
-    chat_id = request_data.chat_id
+        url = request_data.url
+        chat_id = request_data.chat_id
 
-    original_message_id = request_data.message_id
-    # Retrieve message object from original_message_id
-    message_text = "Job started. Please wait for transcription to be completed."
-    update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
-    logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
-    message_id = update_message['result']['message_id']
+        original_message_id = request_data.message_id
+        # Retrieve message object from original_message_id
+        message_text = "Job started. Please wait for transcription to be completed."
+        update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
+        logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
+        message_id = update_message['result']['message_id']
 
-    # Log start of download
-    logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
+        # Log start of download
+        logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
 
-    bot.edit_message_text(
-            "Downloading video..",
-            chat_id=chat_id,
-            message_id=message_id
-        )
-    
-    # Download video
-    filename = download_video(url)
-
-    bot.edit_message_text(
-            "Extracting audio..",
-            chat_id=chat_id,
-            message_id=message_id
-        )
-
-    # Extract audio
-    audio_path = extract_audio(filename)
-
-    if 'Error' in audio_path:
         bot.edit_message_text(
-            audio_path,
-            chat_id=chat_id,
-            message_id=message_id
-        )
-        return {"transcription": audio_path}
+                "Downloading video..",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        
+        # Download video
+        filename = download_video(url)
 
-    # Remove video
-    os.remove(filename)
+        bot.edit_message_text(
+                "Extracting audio..",
+                chat_id=chat_id,
+                message_id=message_id
+            )
 
-    # Transcribe audio
-    text = recognize_whisper(
-        audio_path, 
-        OPENAI_API_KEY,
-        chat_id,
-        message_id,
-        bot
-        )
+        # Extract audio
+        audio_path = extract_audio(filename)
 
-    # Remove audio
-    os.remove(audio_path)
+        if 'Error' in audio_path:
+            bot.edit_message_text(
+                audio_path,
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            return {"transcription": audio_path}
 
-    # Log transcription length
-    logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
+        # Remove video
+        os.remove(filename)
 
-    # Edit message that Job has finished with text len
-    bot.edit_message_text(
-            f"Transcription finished. Text length: {len(text)}",
-            chat_id=chat_id,
-            message_id=message_id
-        )
+        # Transcribe audio
+        text = recognize_whisper(
+            audio_path, 
+            OPENAI_API_KEY,
+            chat_id,
+            message_id,
+            bot
+            )
+
+        # Remove audio
+        os.remove(audio_path)
+
+        # Log transcription length
+        logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
+
+        # Edit message that Job has finished with text len
+        bot.edit_message_text(
+                f"Transcription finished. Text length: {len(text)}",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        
+        # Send the transcription
+        filename = f'./data/{uuid.uuid4().hex}.txt'
+
+        with open(filename, 'w') as f:
+            f.write(text)
+
+        with open(filename, 'rb') as f:
+            bot.send_document(
+                chat_id, 
+                f
+            )
+        os.remove(filename)
+        
+        return JSONResponse(content={
+                "type": "empty",
+                "body": ""
+                })
     
-    # Send the transcription
-    # try:
-    filename = f'./data/{uuid.uuid4().hex}.txt'
-
-    with open(filename, 'w') as f:
-        f.write(text)
-
-    with open(filename, 'rb') as f:
-        bot.send_document(
-            chat_id, 
-            f
-        )
-    os.remove(filename)
-    """except Exception as e:
-        logger.error(e)"""
-    
-    return JSONResponse(content={
-            "type": "empty",
-            "body": ""
-            })    
+    except Exception as e:
+        logger.error("Error: " + str(e))
+        return JSONResponse(content={
+                "type": "text",
+                "body": str(e)
+                })
 
 
 def download_video(url):
