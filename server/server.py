@@ -24,8 +24,8 @@ app = FastAPI()
 
 class TranscriptionRequest(BaseModel):
     url: str
-    chat_id: str
-    message_id: str
+    chat_id: int
+    message_id: int
     bot_token: str
 
 
@@ -92,8 +92,8 @@ def transcribe(request_data: TranscriptionRequest):
             return {"error": "OPENAI_API_KEY environment variable not found"}
 
         url = request_data.url
-        chat_id = int(request_data.chat_id)
-        message_id = int(request_data.message_id)
+        chat_id = request_data.chat_id
+        message_id = request_data.message_id
         bot_token = request_data.bot_token
 
         # Log start of download
