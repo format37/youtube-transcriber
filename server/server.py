@@ -170,6 +170,15 @@ async def call_message(request: Request, authorization: str = Header(None)):
         file_id = message['audio']['file_id']
         logger.info(f'file_id: {file_id}')
         file_info = bot.get_file(file_id)
+
+        original_message_id = message['message_id']
+        chat_id = message['chat']['id']
+        # Retrieve message object from original_message_id
+        message_text = "Job started. Please wait for transcription to be completed."
+        update_message = send_reply(token, chat_id, original_message_id, message_text)
+        logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
+        message_id = update_message['result']['message_id']
+
         # Download the file contents 
         file_bytes = bot.download_file(file_info.file_path)
         logger.info(f'file_bytes: {len(file_bytes)}')
@@ -187,8 +196,9 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Convert it to 16khz mono MP3
         logger.info(f'converting audio to {file_path}')
         converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
+        
         logger.info('Transcribing audio..')
-        transcribe_audio_file(file_path, bot, message['chat']['id'], message['message_id'])
+        transcribe_audio_file(file_path, bot, chat_id, message_id)
         logger.info('Transcription finished.')
         
         return JSONResponse(content={
