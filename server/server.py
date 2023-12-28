@@ -146,6 +146,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "empty",
             "body": ""
             })
+    else:
+        answer = 'Please send a youtube link to transcribe the video to text.'
 
     return JSONResponse(content={
             "type": "text",
