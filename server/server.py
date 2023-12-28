@@ -173,33 +173,28 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Download the file contents 
         file_bytes = bot.download_file(file_info.file_path)
         logger.info(f'file_bytes: {len(file_bytes)}')
-        """logger.info('post: audio')
-        # Save the audio file to disk
-        filename = f'{uuid.uuid4().hex}.{audio.filename.split(".")[-1]}'
-        file_path = os.path.join("/data", filename)
-        
-        logger.info(f"Saving audio to {file_path}")
+        file_name = message['audio']['file_name']
+        # Add uuid before file_name
+        file_name = f'{uuid.uuid4().hex}_{file_name}'
+        file_path = os.path.join(data_path, file_name)
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
-            logger.info(f"Audio saved to {file_path}")
-            
-            
+            shutil.copyfileobj(file_bytes, buffer)
         # Load the audio file
         original_audio = AudioSegment.from_file(file_path)
         
         # Convert it to 16khz mono MP3
+        logger.info(f'converting audio to {file_path}')
         converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
-        logger.info(f"Audio converted to {file_path}")
-
-        # Send the converted audio to OpenAI for transcription
-        openai.transcribe(file_path)
-        logger.info(f"Audio sent to OpenAI for transcription")
+        logger.info('Transcribing audio..')
+        transcribe_audio_file(file_path, bot, message['chat']['id'], message['message_id'])
+        logger.info('Transcription finished.')
         
-        # return {"message": "Audio received and processed"}
         return JSONResponse(content={
-                "type": "text",
-                "body": str("Audio received and processed")
-            })"""
+            "type": "empty",
+            "body": ""
+            })
+        
+        
     
     if 'text' in message:
         # Add user CMD
@@ -296,9 +291,6 @@ def send_reply(bot_token, chat_id, message_id, text):
 
 def transcribe(request_data: TranscriptionRequest):
     try:
-        OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-        if OPENAI_API_KEY == '':
-            raise Exception("OPENAI_API_KEY environment variable not found")
 
         bot_token = request_data.bot_token
         # Initialize the bot
@@ -335,51 +327,7 @@ def transcribe(request_data: TranscriptionRequest):
         # Extract audio
         audio_path = extract_audio(filename)
 
-        if 'Error' in audio_path:
-            bot.edit_message_text(
-                audio_path,
-                chat_id=chat_id,
-                message_id=message_id
-            )
-            return {"transcription": audio_path}
-
-        # Remove video
-        os.remove(filename)
-
-        # Transcribe audio
-        text = recognize_whisper(
-            audio_path, 
-            OPENAI_API_KEY,
-            chat_id,
-            message_id,
-            bot
-            )
-
-        # Remove audio
-        os.remove(audio_path)
-
-        # Log transcription length
-        logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
-
-        # Edit message that Job has finished with text len
-        bot.edit_message_text(
-                f"Transcription finished. Text length: {len(text)}",
-                chat_id=chat_id,
-                message_id=message_id
-            )
-        
-        # Send the transcription
-        filename = f'./data/{uuid.uuid4().hex}.txt'
-
-        with open(filename, 'w') as f:
-            f.write(text)
-
-        with open(filename, 'rb') as f:
-            bot.send_document(
-                chat_id, 
-                f
-            )
-        os.remove(filename)
+        transcribe_audio_file(audio_path, bot, chat_id, message_id)
         
         return JSONResponse(content={
                 "type": "empty",
@@ -392,6 +340,57 @@ def transcribe(request_data: TranscriptionRequest):
                 "type": "text",
                 "body": str(e)
                 })
+    
+
+def transcribe_audio_file(audio_path, bot, chat_id, message_id):
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    if OPENAI_API_KEY == '':
+        raise Exception("OPENAI_API_KEY environment variable not found")
+    if 'Error' in audio_path:
+        bot.edit_message_text(
+            audio_path,
+            chat_id=chat_id,
+            message_id=message_id
+        )
+        return {"transcription": audio_path}
+
+    # Remove video
+    os.remove(filename)
+
+    # Transcribe audio
+    text = recognize_whisper(
+        audio_path, 
+        OPENAI_API_KEY,
+        chat_id,
+        message_id,
+        bot
+        )
+
+    # Remove audio
+    os.remove(audio_path)
+
+    # Log transcription length
+    logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
+
+    # Edit message that Job has finished with text len
+    bot.edit_message_text(
+            f"Transcription finished. Text length: {len(text)}",
+            chat_id=chat_id,
+            message_id=message_id
+        )
+    
+    # Send the transcription
+    filename = f'./data/{uuid.uuid4().hex}.txt'
+
+    with open(filename, 'w') as f:
+        f.write(text)
+
+    with open(filename, 'rb') as f:
+        bot.send_document(
+            chat_id, 
+            f
+        )
+    os.remove(filename)
 
 
 def download_video(url):
