@@ -174,7 +174,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         original_message_id = message['message_id']
         chat_id = message['chat']['id']
         # Retrieve message object from original_message_id
-        message_text = "Job started. Please wait for transcription to be completed."
+        message_text = "Job started. Please wait for transcription to be completed.\nDownloading file.."
         update_message = send_reply(token, chat_id, original_message_id, message_text)
         logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
         message_id = update_message['result']['message_id']
@@ -195,6 +195,12 @@ async def call_message(request: Request, authorization: str = Header(None)):
         
         # Convert it to 16khz mono MP3
         logger.info(f'converting audio to {file_path}')
+        # Edit message that Job has finished with text len
+        bot.edit_message_text(
+                f"Converting file..",
+                chat_id=chat_id,
+                message_id=message_id
+            )
         converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
         
         logger.info('Transcribing audio..')
