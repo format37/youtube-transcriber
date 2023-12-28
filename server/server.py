@@ -37,6 +37,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         token = authorization.split(" ")[1]
     
     if token:
+        logger.info(f'Bot token: {token}')
         pass
     else:
         answer = 'Bot token not found. Please contact the administrator.'
@@ -64,7 +65,18 @@ async def call_message(request: Request, authorization: str = Header(None)):
         message['text'].startswith("https://youtube.com/") or \
         message['text'].startswith("https://www.youtu.be/") or \
         message['text'].startswith("https://youtu.be/"):
-        answer = 'Youtube transcription is not available at the moment. Please try again later.'
+        # answer = 'Youtube transcription is not available at the moment. Please try again later.'
+        transcription_request = TranscriptionRequest(
+            url=message['text'],
+            chat_id=message['chat']['id'],
+            message_id=message['message_id'],
+            bot_token=token
+        )
+        transcribe(transcription_request)
+        return JSONResponse(content={
+            "type": "empty",
+            "body": ""
+            })
 
     return JSONResponse(content={
             "type": "text",
