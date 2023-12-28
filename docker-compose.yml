@@ -1,18 +1,18 @@
 version: '3.8'
-  services:
-    server:
-      restart: always
-      volumes:
-        - /etc/localtime:/etc/localtime:ro
-        - /etc/timezone:/etc/timezone:ro
-        - ./data:/server/data
-      build: server
-      container_name: bot_youtube_tts
-      logging:
-        options:
-          max-size: "10m"
-          max-file: "3"
-      network_mode: "host"
-      environment:
-        - TZ=Europe/Moscow
-        - OPENAI_API_KEY=x
+services:
+  server:
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./data:/server/data
+    build: server
+    container_name: bot_youtube_tts
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    network_mode: "host"
+    environment:
+      - TZ=Europe/Moscow
+      - OPENAI_API_KEY=x
