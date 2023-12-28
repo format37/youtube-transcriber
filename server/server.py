@@ -93,7 +93,12 @@ def transcribe(request_data: TranscriptionRequest):
 
         url = request_data.url
         chat_id = request_data.chat_id
-        message_id = request_data.message_id
+
+        original_message_id = request_data.message_id
+
+        update_message = bot.reply_to(original_message_id, "Job started. Please wait for transcription to be completed.")
+
+        message_id = update_message.message_id
         bot_token = request_data.bot_token
 
         # Log start of download
