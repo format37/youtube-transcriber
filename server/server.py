@@ -172,20 +172,20 @@ def transcribe(request_data: TranscriptionRequest):
         )
     
     # Send the transcription
-    try:
-        filename = f'data/{uuid.uuid4().hex}.txt'
+    # try:
+    filename = f'data/{uuid.uuid4().hex}.txt'
 
-        with open(filename, 'w') as f:
-            f.write(text)
+    with open(filename, 'w') as f:
+        f.write(text)
 
-        with open(filename, 'rb') as f:
-            bot.send_document(
-                chat_id, 
-                f
-            )
-        os.remove(filename)
-    except Exception as e:
-        logger.error(e)
+    with open(filename, 'rb') as f:
+        bot.send_document(
+            chat_id, 
+            f
+        )
+    os.remove(filename)
+    """except Exception as e:
+        logger.error(e)"""
     
     return JSONResponse(content={
             "type": "empty",
