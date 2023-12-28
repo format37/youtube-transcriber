@@ -1,7 +1,7 @@
 import logging
 import openai
 import pickle
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, File, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import pytube
@@ -14,6 +14,7 @@ from pydub import AudioSegment
 import subprocess
 from telebot import TeleBot
 import requests
+import shutil
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -31,9 +32,38 @@ class TranscriptionRequest(BaseModel):
 
 # This function receives an audio file from telegram user
 # Then it converts to correct format and sends to openai for transcribation
+# @app.post("/audio")
+# async def call_audio(request: Request, authorization: str = Header(None)):
 @app.post("/audio")
-async def call_audio(request: Request, authorization: str = Header(None)):
+async def call_audio(audio: UploadFile):
     logger.info('post: audio')
+    # Save the audio file to disk
+    filename = f'{uuid.uuid4().hex}.{audio.filename.split(".")[-1]}'
+    file_path = os.path.join("/data", filename)
+    
+    logger.info(f"Saving audio to {file_path}")
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(audio.file, buffer)
+        logger.info(f"Audio saved to {file_path}")
+        
+        
+    # Load the audio file
+    original_audio = AudioSegment.from_file(file_path)
+    
+    # Convert it to 16khz mono MP3
+    converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
+    logger.info(f"Audio converted to {file_path}")
+
+    # Send the converted audio to OpenAI for transcription
+    openai.transcribe(file_path)
+    logger.info(f"Audio sent to OpenAI for transcription")
+    
+    # return {"message": "Audio received and processed"}
+    return JSONResponse(content={
+            "type": "text",
+            "body": str("Audio received and processed")
+        })
+    """logger.info('post: audio')
     token = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
@@ -77,7 +107,7 @@ async def call_audio(request: Request, authorization: str = Header(None)):
     filename = f'./data/{uuid.uuid4().hex}.ogg'
     with open(filename, 'wb') as f:
         f.write(request.body())
-        logger.info(f'File saved to {filename}')
+        logger.info(f'File saved to {filename}')"""
     
     # Convert audio to correct format: 
     
