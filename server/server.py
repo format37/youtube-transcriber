@@ -173,7 +173,7 @@ def transcribe(request_data: TranscriptionRequest):
     
     # Send the transcription
     # try:
-    filename = f'data/{uuid.uuid4().hex}.txt'
+    filename = f'./data/{uuid.uuid4().hex}.txt'
 
     with open(filename, 'w') as f:
         f.write(text)
