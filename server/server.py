@@ -192,7 +192,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Download the file contents 
         file_bytes = bot.download_file(file_info.file_path)
         logger.info(f'file_bytes: {len(file_bytes)}')
-        file_name = message[key]['file_name']
+        if 'audio' in message:
+            file_name = message[key]['file_name']
+        else:
+            file_name = 'temp.ogg'
         # Add uuid before file_name
         file_name = f'{uuid.uuid4().hex}_{file_name}'
         file_path = os.path.join(data_path, file_name)
