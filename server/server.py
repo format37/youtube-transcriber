@@ -59,8 +59,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
     
     answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
     data_path = './data/'
-    # Read user_list from ./data/user_list.txt
-    with open(data_path + 'user_list.txt', 'r') as f:
+    # Read user_list from ./data/users.txt
+    with open(data_path + 'users.txt', 'r') as f:
         user_list = f.read().splitlines()
 
     if str(message['from']['id']) not in user_list:
