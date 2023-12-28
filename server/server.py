@@ -117,7 +117,9 @@ def transcribe(request_data: TranscriptionRequest):
     # update_message = bot.reply_to(original_message, "Job started. Please wait for transcription to be completed.")
     update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
     logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
-    message_id = update_message.message_id
+    # message_id = update_message.message_id
+    """INFO:server:[106129214] Update message: {'ok': True, 'result': {'message_id': 216, 'from': {'id': 6387301346, 'is_bot': True, 'first_name': 'youtubesttbot', 'username': 'youtubesttbot'}, 'chat': {'id': 106129214, 'first_name': 'Alex', 'username': 'format37', 'type': 'private'}, 'date': 1703760315, 'reply_to_message': {'message_id': 215, 'from': {'id': 106129214, 'is_bot': False, 'first_name': 'Alex', 'username': 'format37', 'language_code': 'en', 'is_premium': True}, 'chat': {'id': 106129214, 'first_name': 'Alex', 'username': 'format37', 'type': 'private'}, 'date': 1703760315, 'text': 'https://youtube.com/shorts/TG3Jvd39358?si=AjNrXOZQhNaEwE3o', 'entities': [{'offset': 0, 'length': 58, 'type': 'url'}]}, 'text': 'Job started. Please wait for transcription to be completed.'}}"""
+    message_id = update_message['result']['message_id']
 
     # Log start of download
     logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
