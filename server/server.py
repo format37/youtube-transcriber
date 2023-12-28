@@ -85,82 +85,82 @@ async def call_message(request: Request, authorization: str = Header(None)):
 
 
 def transcribe(request_data: TranscriptionRequest):
-    try:
-        OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-        if OPENAI_API_KEY == '':
-            raise Exception("OPENAI_API_KEY environment variable not found")
-            return {"error": "OPENAI_API_KEY environment variable not found"}
+    # try:
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    if OPENAI_API_KEY == '':
+        raise Exception("OPENAI_API_KEY environment variable not found")
+        return {"error": "OPENAI_API_KEY environment variable not found"}
 
-        url = request_data.url
-        chat_id = request_data.chat_id
+    url = request_data.url
+    chat_id = request_data.chat_id
 
-        original_message_id = request_data.message_id
-        bot_token = request_data.bot_token
+    original_message_id = request_data.message_id
+    bot_token = request_data.bot_token
 
-        # Initialize the bot
-        bot = TeleBot(bot_token)
+    # Initialize the bot
+    bot = TeleBot(bot_token)
 
-        update_message = bot.reply_to(original_message_id, "Job started. Please wait for transcription to be completed.")
-        message_id = update_message.message_id
+    update_message = bot.reply_to(original_message_id, "Job started. Please wait for transcription to be completed.")
+    message_id = update_message.message_id
 
-        # Log start of download
-        logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
+    # Log start of download
+    logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
 
-        
+    
 
+    bot.edit_message_text(
+            "Downloading video..",
+            chat_id=chat_id,
+            message_id=message_id
+        )
+    
+    # Download video
+    filename = download_video(url)
+
+    bot.edit_message_text(
+            "Extracting audio..",
+            chat_id=chat_id,
+            message_id=message_id
+        )
+
+    # Extract audio
+    audio_path = extract_audio(filename)
+
+    if 'Error' in audio_path:
         bot.edit_message_text(
-                "Downloading video..",
-                chat_id=chat_id,
-                message_id=message_id
-            )
-        
-        # Download video
-        filename = download_video(url)
+            audio_path,
+            chat_id=chat_id,
+            message_id=message_id
+        )
+        return {"transcription": audio_path}
 
-        bot.edit_message_text(
-                "Extracting audio..",
-                chat_id=chat_id,
-                message_id=message_id
-            )
+    # Remove video
+    os.remove(filename)
 
-        # Extract audio
-        audio_path = extract_audio(filename)
+    # Transcribe audio
+    text = recognize_whisper(
+        audio_path, 
+        OPENAI_API_KEY,
+        chat_id,
+        message_id,
+        bot
+        )
 
-        if 'Error' in audio_path:
-            bot.edit_message_text(
-                audio_path,
-                chat_id=chat_id,
-                message_id=message_id
-            )
-            return {"transcription": audio_path}
+    # Remove audio
+    os.remove(audio_path)
 
-        # Remove video
-        os.remove(filename)
+    # Log transcription length
+    logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
 
-        # Transcribe audio
-        text = recognize_whisper(
-            audio_path, 
-            OPENAI_API_KEY,
-            chat_id,
-            message_id,
-            bot
-            )
-
-        # Remove audio
-        os.remove(audio_path)
-
-        # Log transcription length
-        logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
-
-        # Edit message that Job has finished with text len
-        bot.edit_message_text(
-                f"Transcription finished. Text length: {len(text)}",
-                chat_id=chat_id,
-                message_id=message_id
-            )
-        
-        return {"transcription": text}
-    except Exception as e:
+    # Edit message that Job has finished with text len
+    bot.edit_message_text(
+            f"Transcription finished. Text length: {len(text)}",
+            chat_id=chat_id,
+            message_id=message_id
+        )
+    
+    return {"transcription": text}
+    """except Exception as e:
         # Log error
         logger.error("Error: " + str(e))
         # Edit message that Job has finished with error
@@ -169,7 +169,7 @@ def transcribe(request_data: TranscriptionRequest):
                 chat_id=chat_id,
                 message_id=message_id
             )
-        return {"transcription": str(e)}
+        return {"transcription": str(e)}"""
 
 
 def download_video(url):
