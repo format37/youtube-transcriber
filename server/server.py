@@ -167,7 +167,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Initialize the bot
         bot = TeleBot(token)
         # Get the audio file ID
-        file_id = message['audio'].file_id
+        file_id = message['audio']['file_id']
         logger.info(f'file_id: {file_id}')
         file_info = bot.get_file(file_id)
         # Download the file contents 
