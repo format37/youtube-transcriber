@@ -164,10 +164,20 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "body": str(answer)
             })
     if 'audio' in message or 'voice' in message:
+        if 'audio' in message:
+            key = 'audio'
+        elif 'voice' in message:
+            key = 'voice'
+        else:
+            return JSONResponse(content={
+                "type": "text",
+                "body": "Unsupported format"
+            })
+        
         # Initialize the bot
         bot = TeleBot(token)
         # Get the audio file ID
-        file_id = message['audio']['file_id']
+        file_id = message[key]['file_id']
         logger.info(f'file_id: {file_id}')
         file_info = bot.get_file(file_id)
 
@@ -182,7 +192,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Download the file contents 
         file_bytes = bot.download_file(file_info.file_path)
         logger.info(f'file_bytes: {len(file_bytes)}')
-        file_name = message['audio']['file_name']
+        file_name = message[key]['file_name']
         # Add uuid before file_name
         file_name = f'{uuid.uuid4().hex}_{file_name}'
         file_path = os.path.join(data_path, file_name)
