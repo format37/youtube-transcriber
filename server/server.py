@@ -59,10 +59,11 @@ async def call_message(request: Request, authorization: str = Header(None)):
     
     answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
     data_path = './data/'
+    
+    # Check if user is in user_list
     # Read user_list from ./data/users.txt
     with open(data_path + 'users.txt', 'r') as f:
         user_list = f.read().splitlines()
-
     if str(message['from']['id']) not in user_list:
         answer = "You are not authorized to use this bot.\n"
         answer += "Please forward this message to the administrator.\n"
@@ -71,8 +72,65 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "text",
             "body": str(answer)
             })
+    
+    # Add user CMD
+    if message['text'].startswith('/add'):
+        # Check is current user in atdmins.txt
+        admins = []
+        with open(data_path + 'admins.txt', 'r') as f:
+            admins = f.read().splitlines()
+        if str(message['from']['id']) not in admins:
+            answer = "You are not authorized to use this command."
+            return JSONResponse(content={
+                "type": "text",
+                "body": str(answer)
+                })
+        # split cmd from format /add <user_id>
+        cmd = message['text'].split(' ')
+        if len(cmd) != 2:
+            answer = "Invalid command format. Please use /add <user_id>."
+            return JSONResponse(content={
+                "type": "text",
+                "body": str(answer)
+                })
+        # add user_id to user_list
+        user_id = cmd[1]
+        user_list.append(user_id)
+        # write user_list to ./data/users.txt
+        with open(data_path + 'users.txt', 'w') as f:
+            f.write('\n'.join(user_list))
+        answer = f'User {user_id} added successfully.'        
 
-    if message['text'].startswith("https://www.youtube.com/") or \
+    # Remove user CMD
+    elif message['text'].startswith('/remove'):
+        # Check is current user in atdmins.txt
+        admins = []
+        with open(data_path + 'admins.txt', 'r') as f:
+            admins = f.read().splitlines()
+        if str(message['from']['id']) not in admins:
+            answer = "You are not authorized to use this command."
+            return JSONResponse(content={
+                "type": "text",
+                "body": str(answer)
+                })
+        # split cmd from format /remove <user_id>
+        cmd = message['text'].split(' ')
+        if len(cmd) != 2:
+            answer = "Invalid command format. Please use /remove <user_id>."
+            return JSONResponse(content={
+                "type": "text",
+                "body": str(answer)
+                })
+        # remove user_id from user_list
+        user_id = cmd[1]
+        user_list.remove(user_id)
+        # write user_list to ./data/users.txt
+        with open(data_path + 'users.txt', 'w') as f:
+            f.write('\n'.join(user_list))
+        answer = f'User {user_id} removed successfully.'
+
+    # Youtube transcription CMD
+    elif message['text'].startswith("https://www.youtube.com/") or \
         message['text'].startswith("https://youtube.com/") or \
         message['text'].startswith("https://www.youtu.be/") or \
         message['text'].startswith("https://youtu.be/"):
