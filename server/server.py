@@ -1,7 +1,8 @@
 import logging
 import openai
 import pickle
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Header
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import pytube
 import uuid
@@ -26,9 +27,52 @@ class TranscriptionRequest(BaseModel):
     chat_id: str
     message_id: str
     bot_token: str
+
+
+@app.post("/message")
+async def call_message(request: Request, authorization: str = Header(None)):
+    logger.info('post: message')
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
     
-@app.post("/transcribe")
-async def transcribe(request_data: TranscriptionRequest):
+    if token:
+        pass
+    else:
+        answer = 'Bot token not found. Please contact the administrator.'
+        return JSONResponse(content={
+            "type": "text",
+            "body": str(answer)
+        })
+    
+    message = await request.json()
+    logger.info(f'message: {message}')
+
+    # Return if it is a group
+    if message['chat']['type'] != 'private':
+        return JSONResponse(content={
+            "type": "empty",
+            "body": ""
+            })
+    
+    answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
+    # conf_path = './data/user_conf/'
+    # config = read_config(conf_path, message['from']['id'])
+    data_path = './data/'
+
+    if message['text'].startswith("https://www.youtube.com/") or \
+        message['text'].startswith("https://youtube.com/") or \
+        message['text'].startswith("https://www.youtu.be/") or \
+        message['text'].startswith("https://youtu.be/"):
+        answer = 'Youtube transcription is not available at the moment. Please try again later.'
+
+    return JSONResponse(content={
+            "type": "text",
+            "body": str(answer)
+            })
+
+
+def transcribe(request_data: TranscriptionRequest):
     try:
         OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
         if OPENAI_API_KEY == '':
