@@ -64,9 +64,9 @@ async def call_message(request: Request, authorization: str = Header(None)):
         user_list = f.read().splitlines()
 
     if str(message['from']['id']) not in user_list:
-        answer = f'Your user id is {message["from"]["id"]}.\n'
-        answer += "You are not authorized to use this bot.\n"
-        answer += "Please forward this message to the administrator."
+        answer = "You are not authorized to use this bot.\n"
+        answer += "Please forward this message to the administrator.\n"
+        answer += f'User id: {message["from"]["id"]}'
         return JSONResponse(content={
             "type": "text",
             "body": str(answer)
