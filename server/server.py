@@ -328,7 +328,8 @@ def transcribe(request_data: TranscriptionRequest):
 
         # Extract audio
         audio_path = extract_audio(filename)
-
+        # Remove video
+        os.remove(filename)
         transcribe_audio_file(audio_path, bot, chat_id, message_id)
         
         return JSONResponse(content={
@@ -355,9 +356,6 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
             message_id=message_id
         )
         return {"transcription": audio_path}
-
-    # Remove video
-    os.remove(filename)
 
     # Transcribe audio
     text = recognize_whisper(
