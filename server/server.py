@@ -95,17 +95,18 @@ def transcribe(request_data: TranscriptionRequest):
         chat_id = request_data.chat_id
 
         original_message_id = request_data.message_id
+        bot_token = request_data.bot_token
+
+        # Initialize the bot
+        bot = TeleBot(bot_token)
 
         update_message = bot.reply_to(original_message_id, "Job started. Please wait for transcription to be completed.")
-
         message_id = update_message.message_id
-        bot_token = request_data.bot_token
 
         # Log start of download
         logger.info("["+str(chat_id)+"] Starting video download from url: " + url)    
 
-        # Initialize the bot
-        bot = TeleBot(bot_token)
+        
 
         bot.edit_message_text(
                 "Downloading video..",
