@@ -19,4 +19,4 @@ COPY server.py .
 EXPOSE 8702
 
 # Run the server
-CMD ["uvicorn", "server:server", "--host", "0.0.0.0", "--port", "8702"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8702"]
