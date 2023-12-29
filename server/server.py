@@ -126,10 +126,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Initialize the bot
         bot = TeleBot(token)
         # Get the audio file ID
-        if 'video_note' in message:
-            file_id = message[key]['thumbnail']['file_id']
-        else:
-            file_id = message[key]['file_id']
+        """if 'video_note' in message:
+            file_id = message[key]['thumb']['file_id']
+        else:"""
+        file_id = message[key]['file_id']
         logger.info(f'file_id: {file_id}')
         file_info = bot.get_file(file_id)
 
@@ -171,9 +171,9 @@ async def call_message(request: Request, authorization: str = Header(None)):
         try:
             # original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
             # original_audio = AudioSegment.from_file(file_path, format="3gp")
-            if 'video_note' in message:
+            """if 'video_note' in message:
                 file_path = extract_audio(file_path)
-                logger.info(f'audio extracted to file_path: {file_path}')
+                logger.info(f'audio extracted to file_path: {file_path}')"""
 
             original_audio = AudioSegment.from_file(file_path)
         except Exception as e:
