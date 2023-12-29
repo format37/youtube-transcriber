@@ -151,7 +151,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
         
         # Load the audio file
         try:
-            original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
+            # original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
+            original_audio = AudioSegment.from_file(file_path, format="3gp")
         except Exception as e:
             logger.error(f'Error loading audio file: {e}')
             bot.edit_message_text(
