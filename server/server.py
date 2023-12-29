@@ -15,6 +15,8 @@ import subprocess
 from telebot import TeleBot
 import requests
 import shutil
+import subprocess
+import json
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +31,11 @@ class TranscriptionRequest(BaseModel):
     chat_id: int
     message_id: int
     bot_token: str
+
+def get_media_info(file_path):
+    cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return json.loads(result.stdout)
 
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
@@ -83,7 +90,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         'voice' in message or \
         'video' or \
         'video_note' in message:
-        
+
         if 'audio' in message:
             key = 'audio'
         elif 'voice' in message:
@@ -137,6 +144,11 @@ async def call_message(request: Request, authorization: str = Header(None)):
             shutil.copyfileobj(file_bytes, buffer)"""
         with open(file_path, "wb") as f:
             f.write(file_bytes)
+
+        media_info = get_media_info(file_path)
+        # print(json.dumps(media_info, indent=4))
+        logger.info(f'media_info: {media_info}')
+        
         # Load the audio file
         original_audio = AudioSegment.from_file(file_path)
         
