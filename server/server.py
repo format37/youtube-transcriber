@@ -106,7 +106,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             })
     if 'audio' in message or \
         'voice' in message or \
-        'video' or \
+        'video' in message or\
         'video_note' in message:
         logger.info('audio, voice, video, or video_note found')
 
