@@ -79,7 +79,11 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "text",
             "body": str(answer)
             })
-    if 'audio' in message or 'voice' in message or 'video' in message:
+    if 'audio' in message or \
+        'voice' in message or \
+        'video' or \
+        'video_note' in message:
+        
         if 'audio' in message:
             key = 'audio'
         elif 'voice' in message:
