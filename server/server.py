@@ -37,6 +37,24 @@ def get_media_info(file_path):
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return json.loads(result.stdout)
 
+def extract_audio(video_file_path):
+    # Generate random filename for audio file
+    audio_file_name = f"{uuid.uuid4().hex}.mp3"  
+    audio_file_path = os.path.join("/tmp", audio_file_name)
+    
+    # FFmpeg command to extract audio
+    command = [
+        "ffmpeg", 
+        "-i", video_file_path, 
+        "-vn", "-acodec", "copy", 
+        audio_file_path
+    ]
+    
+    # Run FFmpeg process
+    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    return audio_file_path
+
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
     logger.info('post: message')
@@ -145,24 +163,29 @@ async def call_message(request: Request, authorization: str = Header(None)):
         with open(file_path, "wb") as f:
             f.write(file_bytes)
 
-        media_info = get_media_info(file_path)
+        # media_info = get_media_info(file_path)
         # print(json.dumps(media_info, indent=4))
-        logger.info(f'media_info: {media_info}')
+        # logger.info(f'media_info: {media_info}')
         
         # Load the audio file
         try:
             # original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
-            original_audio = AudioSegment.from_file(file_path, format="3gp")
+            # original_audio = AudioSegment.from_file(file_path, format="3gp")
+            if 'video_note' in message:
+                file_path = extract_audio(file_path)
+                logger.info(f'audio extracted to file_path: {file_path}')
+
+            original_audio = AudioSegment.from_file(file_path)
         except Exception as e:
             logger.error(f'Error loading audio file: {e}')
             bot.edit_message_text(
-                f"Canceled",
+                f"Canceled. Unsupported format.",
                 chat_id=chat_id,
                 message_id=message_id
             )
             return JSONResponse(content={
-                "type": "text",
-                "body": f"Unsupported codec. {e}"
+                "type": "empty",
+                "body": ""
             })
         
         # Convert it to 16khz mono MP3
