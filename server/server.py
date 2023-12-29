@@ -42,10 +42,17 @@ async def call_message(request: Request, authorization: str = Header(None)):
         pass
     else:
         answer = 'Bot token not found. Please contact the administrator.'
-        return JSONResponse(content={
-            "type": "text",
-            "body": str(answer)
-        })
+        # if not private chat, return empty
+        if message['chat']['type'] != 'private':
+            return JSONResponse(content={
+                "type": "empty",
+                "body": ""
+                })
+        else:
+            return JSONResponse(content={
+                "type": "text",
+                "body": str(answer)
+            })
     
     message = await request.json()
     logger.info(f'message: {message}')
@@ -57,7 +64,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "body": ""
             })
     
-    answer = "The system is temporarily under maintenance. We apologize for the inconvenience."
+    answer = "Please, send video, audio, or youtube link to transcribe."
     data_path = './data/'
     
     # Check if user is in user_list
@@ -79,6 +86,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
             key = 'voice'
         elif 'video' in message:
             key = 'video'
+        elif 'video_note' in message:
+            key = 'video_note'
         else:
             return JSONResponse(content={
                 "type": "text",
@@ -107,7 +116,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             file_name = message[key]['file_name']
         elif 'voice' in message:
             file_name = 'temp.ogg'
-        elif 'video' in message:
+        elif 'video' or 'video_note' in message:
             file_name = 'temp.mp4'
         else:
             return JSONResponse(content={
