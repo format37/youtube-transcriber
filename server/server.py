@@ -1,7 +1,8 @@
 import logging
 import openai
-import pickle
-from fastapi import FastAPI, Request, Header, File, UploadFile
+# import pickle
+from fastapi import FastAPI, Request, Header
+# , File, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import pytube
@@ -14,9 +15,9 @@ from pydub import AudioSegment
 import subprocess
 from telebot import TeleBot
 import requests
-import shutil
+# import shutil
 import subprocess
-import json
+# import json
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +33,7 @@ class TranscriptionRequest(BaseModel):
     message_id: int
     bot_token: str
 
-def get_media_info(file_path):
+"""def get_media_info(file_path):
     cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return json.loads(result.stdout)
@@ -53,7 +54,7 @@ def extract_audio(video_file_path):
     # Run FFmpeg process
     subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
-    return audio_file_path
+    return audio_file_path"""
 
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
@@ -184,6 +185,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 chat_id=chat_id,
                 message_id=message_id
             )
+            # remove audio file
+            os.remove(file_path)
             return JSONResponse(content={
                 "type": "empty",
                 "body": ""
@@ -202,7 +205,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
         logger.info('Transcription finished.')
-        
+        os.remove(file_path)
         return JSONResponse(content={
             "type": "empty",
             "body": ""
