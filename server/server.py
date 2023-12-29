@@ -154,6 +154,11 @@ async def call_message(request: Request, authorization: str = Header(None)):
             original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
         except Exception as e:
             logger.error(f'Error loading audio file: {e}')
+            bot.edit_message_text(
+                f"Canceled",
+                chat_id=chat_id,
+                message_id=message_id
+            )
             return JSONResponse(content={
                 "type": "text",
                 "body": f"Unsupported codec. {e}"
