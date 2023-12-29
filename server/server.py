@@ -108,6 +108,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         'voice' in message or \
         'video' or \
         'video_note' in message:
+        logger.info('audio, voice, video, or video_note found')
 
         if 'audio' in message:
             key = 'audio'
@@ -120,7 +121,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         else:
             return JSONResponse(content={
                 "type": "text",
-                "body": "Unsupported format"
+                "body": "Unsupported format."
             })
         
         # Initialize the bot
@@ -369,6 +370,7 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
         return {"transcription": audio_path}
 
     # Transcribe audio
+    logger.info("["+str(chat_id)+"] Transcribing audio file..")
     text = recognize_whisper(
         audio_path, 
         OPENAI_API_KEY,
