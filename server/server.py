@@ -140,7 +140,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Retrieve message object from original_message_id
         message_text = "Job started. Please wait for transcription to be completed.\nDownloading file.."
         update_message = send_reply(token, chat_id, original_message_id, message_text)
-        logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
+        # logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
         message_id = update_message['result']['message_id']
 
         # Download the file contents 
@@ -320,7 +320,7 @@ def transcribe(request_data: TranscriptionRequest):
         # Retrieve message object from original_message_id
         message_text = "Job started. Please wait for transcription to be completed."
         update_message = send_reply(bot_token, chat_id, original_message_id, message_text)
-        logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
+        # logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
         message_id = update_message['result']['message_id']
 
         # Log start of download
