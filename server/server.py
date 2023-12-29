@@ -205,7 +205,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
         logger.info('Transcription finished.')
-        os.remove(file_path)
+        # os.remove(file_path)
         return JSONResponse(content={
             "type": "empty",
             "body": ""
