@@ -97,7 +97,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # Initialize the bot
         bot = TeleBot(token)
         # Get the audio file ID
-        file_id = message[key]['file_id']
+        if 'video_note' in message:
+            file_id = message[key]['thumbnail']['file_id']
+        else:
+            file_id = message[key]['file_id']
         logger.info(f'file_id: {file_id}')
         file_info = bot.get_file(file_id)
 
