@@ -150,7 +150,14 @@ async def call_message(request: Request, authorization: str = Header(None)):
         logger.info(f'media_info: {media_info}')
         
         # Load the audio file
-        original_audio = AudioSegment.from_file(file_path)
+        try:
+            original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
+        except Exception as e:
+            logger.error(f'Error loading audio file: {e}')
+            return JSONResponse(content={
+                "type": "text",
+                "body": f"Unsupported codec. {e}"
+            })
         
         # Convert it to 16khz mono MP3
         logger.info(f'converting audio to {file_path}')
