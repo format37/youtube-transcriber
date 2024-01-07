@@ -133,7 +133,6 @@ async def call_message(request: Request, authorization: str = Header(None)):
         else:"""
         file_id = message[key]['file_id']
         logger.info(f'file_id: {file_id}')
-        file_info = bot.get_file(file_id)
 
         original_message_id = message['message_id']
         chat_id = message['chat']['id']
@@ -143,8 +142,16 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
         message_id = update_message['result']['message_id']
 
-        # Download the file contents 
-        file_bytes = bot.download_file(file_info.file_path)
+        if False:
+            file_info = bot.get_file(file_id)
+            # Download the file contents 
+            file_bytes = bot.download_file(file_info.file_path)
+        else:
+            # Using telebot.get_file_url to get valid link to file.
+            file_url = bot.get_file_url(file_id)
+            logger.info(f'file_url: {file_url}')
+            file_bytes = requests.get(file_url).content
+            
         logger.info(f'file_bytes: {len(file_bytes)}')
         if 'audio' in message:
             file_name = message[key]['file_name']
