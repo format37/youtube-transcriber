@@ -142,16 +142,22 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
         message_id = update_message['result']['message_id']
 
-        if False:
+        try:
             file_info = bot.get_file(file_id)
             # Download the file contents 
             file_bytes = bot.download_file(file_info.file_path)
-        else:
-            # Using telebot.get_file_url to get valid link to file.
-            file_url = bot.get_file_url(file_id)
-            logger.info(f'file_url: {file_url}')
-            file_bytes = requests.get(file_url).content
-            
+        except Exception as e:
+            logger.error(f'Error downloading file: {e}')
+            bot.edit_message_text(
+                f"Canceled. Unable to download file. {e}",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            return JSONResponse(content={
+                "type": "empty",
+                "body": ""
+            })
+
         logger.info(f'file_bytes: {len(file_bytes)}')
         if 'audio' in message:
             file_name = message[key]['file_name']
