@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(session_timeout=60*60) # 1 hour timeout
 
 class TranscriptionRequest(BaseModel):
     url: str
@@ -396,6 +396,7 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
         )
 
     # Remove audio
+    logger.info("["+str(chat_id)+"] Removing audio file..")
     os.remove(audio_path)
 
     # Log transcription length
