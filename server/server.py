@@ -107,8 +107,13 @@ async def call_message(request: Request, authorization: str = Header(None)):
             })
     if 'audio' in message or \
         'voice' in message or \
-        'video' in message or\
-        'video_note' in message:
+        'video' in message or \
+        'video_note' in message or \
+        (
+            'document' in message and \
+            'mime_type' in message['document'] and \
+            'audio' in message['document']['mime_type'])\
+    :
         logger.info('audio, voice, video, or video_note found')
 
         if 'audio' in message:
@@ -119,6 +124,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
             key = 'video'
         elif 'video_note' in message:
             key = 'video_note'
+        elif 'document' in message and \
+            'mime_type' in message['document'] and \
+            'audio' in message['document']['mime_type']:
+            key = 'document'
         else:
             return JSONResponse(content={
                 "type": "text",
