@@ -81,7 +81,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             })
     
     message = await request.json()
-    # logger.info(f'message: {message}')
+    logger.info(f'message: {message}')
 
     # Return if it is a group
     if message['chat']['type'] != 'private':
