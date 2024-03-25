@@ -214,6 +214,14 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "body": ""
             })
         
+        # Replace ' ' if ' ' in file_path, using rename or move
+        if ' ' in file_path:
+            logger.info(f'replacing space in file_path: {file_path}')
+            new_file_path = file_path.replace(' ', '_')
+            os.rename(file_path, new_file_path)
+            file_path = new_file_path
+            logger.info(f'new file_path: {file_path}')
+
         # Convert it to 16khz mono MP3
         logger.info(f'converting audio to {file_path}')
         # Edit message that Job has finished with text len
