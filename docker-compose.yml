@@ -16,3 +16,4 @@ services:
     environment:
       - TZ=Europe/Moscow
       - OPENAI_API_KEY=x
+      - TELEGRAM_BOT_TOKEN=x

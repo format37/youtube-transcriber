@@ -13,7 +13,8 @@ import uvicorn
 import math
 from pydub import AudioSegment
 import subprocess
-from telebot import TeleBot
+# from telebot import TeleBot
+import telebot
 import requests
 # import shutil
 import subprocess
@@ -26,6 +27,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(session_timeout=60*60) # 1 hour timeout
+
+server_api_uri = 'http://localhost:8081/bot{0}/{1}'
+# if server_api_uri != '':
+telebot.apihelper.API_URL = server_api_uri
+logger.info(f'Setting API_URL: {server_api_uri}')
+
+server_file_url = 'http://localhost:8081'
+# if server_file_url != '':
+telebot.apihelper.FILE_URL = server_file_url
+logger.info(f'Setting FILE_URL: {server_file_url}')
+
+token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+# Initialize the bot
+bot = telebot.TeleBot(token)
 
 class TranscriptionRequest(BaseModel):
     url: str
@@ -134,8 +149,20 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "body": "Unsupported format."
             })
         
-        # Initialize the bot
-        bot = TeleBot(token)
+        # server_api_uri = config['SERVER_API_URI']
+        # server_file_url = config['SERVER_FILE_URL']
+        # server_api_uri = 'http://localhost:8081/bot{0}/{1}'
+        # # if server_api_uri != '':
+        # telebot.apihelper.API_URL = server_api_uri
+        # logger.info(f'Setting API_URL: {server_api_uri}')
+
+        # server_file_url = 'http://localhost:8081'
+        # # if server_file_url != '':
+        # telebot.apihelper.FILE_URL = server_file_url
+        # logger.info(f'Setting FILE_URL: {server_file_url}')
+
+        # # Initialize the bot
+        # bot = telebot.TeleBot(token)
         # Get the audio file ID
         """if 'video_note' in message:
             file_id = message[key]['thumb']['file_id']
@@ -339,9 +366,9 @@ def send_reply(bot_token, chat_id, message_id, text):
 def transcribe(request_data: TranscriptionRequest):
     try:
 
-        bot_token = request_data.bot_token
-        # Initialize the bot
-        bot = TeleBot(bot_token)
+        # bot_token = request_data.bot_token
+        # # Initialize the bot
+        # bot = TeleBot(bot_token)
 
         url = request_data.url
         chat_id = request_data.chat_id
