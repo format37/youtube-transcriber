@@ -6,6 +6,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - ./data:/server/data
+      - /your_bot_token:/server/files
     build: server
     container_name: bot_youtube_tts
     logging:
