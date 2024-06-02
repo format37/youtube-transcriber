@@ -34,9 +34,10 @@ telebot.apihelper.API_URL = server_api_uri
 logger.info(f'Setting API_URL: {server_api_uri}')
 
 # server_file_url = 'http://localhost:8081'
-# # if server_file_url != '':
-# telebot.apihelper.FILE_URL = server_file_url
-# logger.info(f'Setting FILE_URL: {server_file_url}')
+server_file_url = 'http://0.0.0.0:8081'
+# if server_file_url != '':
+telebot.apihelper.FILE_URL = server_file_url
+logger.info(f'Setting FILE_URL: {server_file_url}')
 
 token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 # Initialize the bot
@@ -180,11 +181,15 @@ async def call_message(request: Request, authorization: str = Header(None)):
 
         try:
             file_info = bot.get_file(file_id)
-            logger.info(f'downloading file with id: {file_id}')
+            logger.info(f'file_id: {file_id}')
             logger.info(f'file_info: {file_info}')
             logger.info(f'file_path: {file_info.file_path}')
             # Download the file contents 
-            file_bytes = bot.download_file(file_info.file_path)
+            # file_bytes = bot.download_file(file_info.file_path)
+            # file_info.file_path is a local folder where is file stored. Now we need to read it as bytes
+            file_path = file_info.file_path
+            with open(file_path, 'rb') as f:
+                file_bytes = f.read()
         except Exception as e:
             logger.error(f'Error downloading file: {e}')
             bot.edit_message_text(
