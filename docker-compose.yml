@@ -6,7 +6,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - ./data:/server/data
-      - /TELEGRAM_BOT_TOKEN:/TELEGRAM_BOT_TOKEN
+      - type: bind
+        source: /TELEGRAM_BOT_TOKEN
+        target: /TELEGRAM_BOT_TOKEN
     build: server
     container_name: bot_youtube_tts
     logging:
