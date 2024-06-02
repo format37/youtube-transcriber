@@ -188,7 +188,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             # file_bytes = bot.download_file(file_info.file_path)
             # file_info.file_path is a local folder where is file stored. Now we need to read it as bytes
             # file_path = file_info.file_path.replace(token, 'server/files')
-            with open(file_path, 'rb') as f:
+            with open(file_info.file_path, 'rb') as f:
                 file_bytes = f.read()
         except Exception as e:
             logger.error(f'Error downloading file: {e}')
