@@ -374,7 +374,7 @@ def send_reply(bot_token, chat_id, message_id, text):
 def transcribe(request_data: TranscriptionRequest):
     try:
 
-        # bot_token = request_data.bot_token
+        bot_token = request_data.bot_token
         # # Initialize the bot
         # bot = TeleBot(bot_token)
 
