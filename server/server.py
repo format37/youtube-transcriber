@@ -20,6 +20,7 @@ import requests
 # import shutil
 import subprocess
 # import json
+import re
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -337,12 +338,24 @@ async def call_message(request: Request, authorization: str = Header(None)):
             answer = f'User {user_id} removed successfully.'
 
         # Youtube transcription CMD
-        elif message['text'].startswith("https://www.youtube.com/") or \
-            message['text'].startswith("https://youtube.com/") or \
-            message['text'].startswith("https://www.youtu.be/") or \
-            message['text'].startswith("https://youtu.be/"):
+        # elif message['text'].startswith("https://www.youtube.com/") or \
+        #     message['text'].startswith("https://youtube.com/") or \
+        #     message['text'].startswith("https://www.youtu.be/") or \
+        #     message['text'].startswith("https://youtu.be/"):
+        elif youtubelink_in_text(message['text']):
+            # Sample text
+            # text = "ребя, хотел всем порекомендовать этот видос https://example.com/ and this: https://anotherexample.com/"
+
+            # Regular expression to find URLs
+            urls = re.findall(r'(https?://\S+)', message['text'])
+
+            # Print the list of URLs
+            # print(urls)
+            # url=message['text'],
+            logger.info(f'determined urls: {urls}')
+
             transcription_request = TranscriptionRequest(
-                url=message['text'],
+                url=urls[0],
                 chat_id=message['chat']['id'],
                 message_id=message['message_id'],
                 bot_token=token
@@ -359,6 +372,14 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "text",
             "body": str(answer)
             })
+
+def youtubelink_in_text(text):
+    if "https://www.youtube.com/" in text or \
+        "https://youtube.com/" in text or \
+        "https://www.youtu.be/" in text or \
+        "https://youtu.be/" in text:
+        return True
+    return False
 
 
 def send_reply(bot_token, chat_id, message_id, text):
