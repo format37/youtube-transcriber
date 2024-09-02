@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request, Header
 # , File, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import pytube
+# import pytube
+import pytubefix as pytube
 import uuid
 import os
 import ffmpeg
