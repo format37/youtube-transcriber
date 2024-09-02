@@ -477,12 +477,12 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
 
 def download_video(url):
     youtube = pytube.YouTube(url)
-    logger.info("calling: youtube.streams.get_highest_resolution()")
+    logger.info(f"calling: youtube.streams.get_highest_resolution() with url: {url}")
     video = youtube.streams.get_highest_resolution()
 
     unique_id = str(uuid.uuid4())
     outname = unique_id + ".mp4"
-    logger.info("calling: video.download()")
+    logger.info(f"calling: video.download() with outname: {outname}")
     video.download(filename=outname)
     
     return outname
