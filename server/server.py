@@ -1,5 +1,7 @@
 import logging
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=api_key)
 # import pickle
 from fastapi import FastAPI, Request, Header
 # , File, UploadFile
@@ -80,7 +82,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
     token = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
-    
+
     if token:
         logger.info(f'Bot token: {token}')
         pass
@@ -97,7 +99,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "type": "text",
                 "body": str(answer)
             })
-    
+
     message = await request.json()
     logger.info(f'message: {message}')
 
@@ -107,10 +109,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "empty",
             "body": ""
             })
-    
+
     answer = "Please, send video, audio, or youtube link to transcribe."
     data_path = './data/'
-    
+
     # Check if user is in user_list
     # Read user_list from ./data/users.txt
     with open(data_path + 'users.txt', 'r') as f:
@@ -151,7 +153,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "type": "text",
                 "body": "Unsupported format."
             })
-        
+
         # server_api_uri = config['SERVER_API_URI']
         # server_file_url = config['SERVER_FILE_URL']
         # server_api_uri = 'http://localhost:8081/bot{0}/{1}'
@@ -227,7 +229,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
         # media_info = get_media_info(file_path)
         # print(json.dumps(media_info, indent=4))
         # logger.info(f'media_info: {media_info}')
-        
+
         # Load the audio file
         try:
             # original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
@@ -250,7 +252,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "type": "empty",
                 "body": ""
             })
-        
+
         # Replace ' ' if ' ' in file_path, using rename or move
         if ' ' in file_path:
             logger.info(f'replacing space in file_path: {file_path}')
@@ -268,7 +270,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 message_id=message_id
             )
         converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
-        
+
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
         logger.info('Transcription finished.')
@@ -277,9 +279,9 @@ async def call_message(request: Request, authorization: str = Header(None)):
             "type": "empty",
             "body": ""
             })
-        
-        
-    
+
+
+
     if 'text' in message:
         # Add user CMD
         if message['text'].startswith('/add'):
@@ -418,7 +420,7 @@ def transcribe(request_data: TranscriptionRequest):
                 chat_id=chat_id,
                 message_id=message_id
             )
-        
+
         # Download video
         filename = download_video(url)
 
@@ -433,19 +435,19 @@ def transcribe(request_data: TranscriptionRequest):
         # Remove video
         os.remove(filename)
         transcribe_audio_file(audio_path, bot, chat_id, message_id)
-        
+
         return JSONResponse(content={
                 "type": "empty",
                 "body": ""
                 })
-    
+
     except Exception as e:
         logger.error("Error: " + str(e))
         return JSONResponse(content={
                 "type": "text",
                 "body": str(e)
                 })
-    
+
 
 def transcribe_audio_file(audio_path, bot, chat_id, message_id):
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
@@ -482,7 +484,7 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
             chat_id=chat_id,
             message_id=message_id
         )
-    
+
     # Send the transcription
     filename = f'./data/{uuid.uuid4().hex}.txt'
 
@@ -506,7 +508,7 @@ def download_video(url):
     outname = unique_id + ".mp4"
     logger.info(f"calling: video.download() with outname: {outname}")
     video.download(filename=outname)
-    
+
     return outname
 
 
@@ -516,7 +518,7 @@ def extract_audio(video_path):
 
     # Generate an unique mp3 audio file name
     audio_path = str(uuid.uuid4()) + ".mp3"
-    
+
     try:
         # Extract audio using ffmpeg
         stream = ffmpeg.input(video_path)
@@ -525,7 +527,7 @@ def extract_audio(video_path):
         # Log what patch
         logger.info(f"Audio extracted to {audio_path}")
         return audio_path
-    
+
     except Exception as e:
         logger.error("Error extracting audio: " + str(e))
         return 'Error extracting audio: '+str(e)
@@ -591,7 +593,7 @@ def recognize_whisper(
     message_id,
     bot
     ):
-    
+
     # Split the audio into chunks
     chunk_paths = split_audio_ffmpeg(audio_path)
 
@@ -678,15 +680,12 @@ def recognize_whisper_memory_expensive(
 
 def transcribe_chunk(audio_path, api_key):
 
-    openai.api_key = api_key
 
     with open(audio_path, "rb") as audio_file:
-        response = openai.Audio.transcribe(
-        file=audio_file,  
+        response = client.audio.transcribe(file=audio_file,  
         model="whisper-1",
         temperature=0,
-        response_format="text"
-        )
+        response_format="text")
 
     return response
 
