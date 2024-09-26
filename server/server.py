@@ -685,10 +685,16 @@ def recognize_whisper_memory_expensive(
 def transcribe_chunk(audio_path, api_key):
 
     with open(audio_path, "rb") as audio_file:
-        response = client.audio.transcribe(file=audio_file,  
-        model="whisper-1",
-        temperature=0,
-        response_format="text")
+        # response = client.audio.transcribe(file=audio_file,  
+        # model="whisper-1",
+        # temperature=0,
+        # response_format="text")
+        response = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_file, 
+            temperature=0,
+            response_format="text"
+        )
 
     return response
 
