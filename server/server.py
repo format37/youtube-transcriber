@@ -1,7 +1,5 @@
 import logging
 from openai import OpenAI
-
-client = OpenAI(api_key=api_key)
 # import pickle
 from fastapi import FastAPI, Request, Header
 # , File, UploadFile
@@ -75,6 +73,12 @@ def extract_audio(video_file_path):
     subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     return audio_file_path"""
+
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+if OPENAI_API_KEY == '':
+    raise Exception("OPENAI_API_KEY environment variable not found")
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
@@ -450,9 +454,9 @@ def transcribe(request_data: TranscriptionRequest):
 
 
 def transcribe_audio_file(audio_path, bot, chat_id, message_id):
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    if OPENAI_API_KEY == '':
-        raise Exception("OPENAI_API_KEY environment variable not found")
+    # OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    # if OPENAI_API_KEY == '':
+    #     raise Exception("OPENAI_API_KEY environment variable not found")
     if 'Error' in audio_path:
         bot.edit_message_text(
             audio_path,
@@ -679,7 +683,6 @@ def recognize_whisper_memory_expensive(
 
 
 def transcribe_chunk(audio_path, api_key):
-
 
     with open(audio_path, "rb") as audio_file:
         response = client.audio.transcribe(file=audio_file,  
