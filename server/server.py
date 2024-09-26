@@ -1,11 +1,8 @@
 import logging
 from openai import OpenAI
-# import pickle
 from fastapi import FastAPI, Request, Header
-# , File, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-# import pytube
 import pytubefix as pytube
 import uuid
 import os
@@ -14,12 +11,9 @@ import uvicorn
 import math
 from pydub import AudioSegment
 import subprocess
-# from telebot import TeleBot
 import telebot
 import requests
-# import shutil
 import subprocess
-# import json
 import re
 
 # Set up logging 
@@ -35,7 +29,6 @@ server_api_uri = 'http://localhost:8081/bot{0}/{1}'
 telebot.apihelper.API_URL = server_api_uri
 logger.info(f'Setting API_URL: {server_api_uri}')
 
-# server_file_url = 'http://localhost:8081'
 server_file_url = 'http://0.0.0.0:8081'
 # if server_file_url != '':
 telebot.apihelper.FILE_URL = server_file_url
@@ -50,30 +43,6 @@ class TranscriptionRequest(BaseModel):
     chat_id: int
     message_id: int
     bot_token: str
-
-"""def get_media_info(file_path):
-    cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", file_path]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return json.loads(result.stdout)
-
-def extract_audio(video_file_path):
-    # Generate random filename for audio file
-    audio_file_name = f"{uuid.uuid4().hex}.mp3"  
-    audio_file_path = os.path.join("/tmp", audio_file_name)
-    
-    # FFmpeg command to extract audio
-    command = [
-        "ffmpeg", 
-        "-i", video_file_path, 
-        "-vn", "-acodec", "copy", 
-        audio_file_path
-    ]
-    
-    # Run FFmpeg process
-    subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
-    return audio_file_path"""
-
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 if OPENAI_API_KEY == '':
@@ -158,24 +127,6 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "body": "Unsupported format."
             })
 
-        # server_api_uri = config['SERVER_API_URI']
-        # server_file_url = config['SERVER_FILE_URL']
-        # server_api_uri = 'http://localhost:8081/bot{0}/{1}'
-        # # if server_api_uri != '':
-        # telebot.apihelper.API_URL = server_api_uri
-        # logger.info(f'Setting API_URL: {server_api_uri}')
-
-        # server_file_url = 'http://localhost:8081'
-        # # if server_file_url != '':
-        # telebot.apihelper.FILE_URL = server_file_url
-        # logger.info(f'Setting FILE_URL: {server_file_url}')
-
-        # # Initialize the bot
-        # bot = telebot.TeleBot(token)
-        # Get the audio file ID
-        """if 'video_note' in message:
-            file_id = message[key]['thumb']['file_id']
-        else:"""
         file_id = message[key]['file_id']
         logger.info(f'file_id: {file_id}')
 
@@ -193,9 +144,6 @@ async def call_message(request: Request, authorization: str = Header(None)):
             logger.info(f'file_info: {file_info}')
             logger.info(f'file_path: {file_info.file_path}')
             # Download the file contents 
-            # file_bytes = bot.download_file(file_info.file_path)
-            # file_info.file_path is a local folder where is file stored. Now we need to read it as bytes
-            # file_path = file_info.file_path.replace(token, 'server/files')
             with open(file_info.file_path, 'rb') as f:
                 file_bytes = f.read()
         except Exception as e:
@@ -230,18 +178,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
         with open(file_path, "wb") as f:
             f.write(file_bytes)
 
-        # media_info = get_media_info(file_path)
-        # print(json.dumps(media_info, indent=4))
-        # logger.info(f'media_info: {media_info}')
-
         # Load the audio file
         try:
-            # original_audio = AudioSegment.from_file(file_path, format=media_info['streams'][0]['codec_name'])
-            # original_audio = AudioSegment.from_file(file_path, format="3gp")
-            """if 'video_note' in message:
-                file_path = extract_audio(file_path)
-                logger.info(f'audio extracted to file_path: {file_path}')"""
-
             original_audio = AudioSegment.from_file(file_path)
         except Exception as e:
             logger.error(f'Error loading audio file: {e}')
@@ -257,7 +195,6 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 "body": ""
             })
 
-        # Replace ' ' if ' ' in file_path, using rename or move
         if ' ' in file_path:
             logger.info(f'replacing space in file_path: {file_path}')
             new_file_path = file_path.replace(' ', '_')
@@ -273,7 +210,8 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 chat_id=chat_id,
                 message_id=message_id
             )
-        converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
+        # converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
+        converted_audio = original_audio.set_frame_rate(24000).set_channels(2).export(file_path, format="mp3")
 
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
@@ -343,21 +281,10 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 f.write('\n'.join(user_list))
             answer = f'User {user_id} removed successfully.'
 
-        # Youtube transcription CMD
-        # elif message['text'].startswith("https://www.youtube.com/") or \
-        #     message['text'].startswith("https://youtube.com/") or \
-        #     message['text'].startswith("https://www.youtu.be/") or \
-        #     message['text'].startswith("https://youtu.be/"):
         elif youtubelink_in_text(message['text']):
-            # Sample text
-            # text = "ребя, хотел всем порекомендовать этот видос https://example.com/ and this: https://anotherexample.com/"
-
             # Regular expression to find URLs
             urls = re.findall(r'(https?://\S+)', message['text'])
 
-            # Print the list of URLs
-            # print(urls)
-            # url=message['text'],
             logger.info(f'determined urls: {urls}')
 
             transcription_request = TranscriptionRequest(
@@ -403,9 +330,6 @@ def transcribe(request_data: TranscriptionRequest):
     try:
 
         bot_token = request_data.bot_token
-        # # Initialize the bot
-        # bot = TeleBot(bot_token)
-
         url = request_data.url
         chat_id = request_data.chat_id
 
@@ -454,9 +378,6 @@ def transcribe(request_data: TranscriptionRequest):
 
 
 def transcribe_audio_file(audio_path, bot, chat_id, message_id):
-    # OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    # if OPENAI_API_KEY == '':
-    #     raise Exception("OPENAI_API_KEY environment variable not found")
     if 'Error' in audio_path:
         bot.edit_message_text(
             audio_path,
@@ -685,10 +606,6 @@ def recognize_whisper_memory_expensive(
 def transcribe_chunk(audio_path, api_key):
 
     with open(audio_path, "rb") as audio_file:
-        # response = client.audio.transcribe(file=audio_file,  
-        # model="whisper-1",
-        # temperature=0,
-        # response_format="text")
         response = client.audio.transcriptions.create(
             model="whisper-1", 
             file=audio_file, 
