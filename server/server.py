@@ -211,7 +211,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 message_id=message_id
             )
         # converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
-        converted_audio = original_audio.set_frame_rate(24000).set_channels(2).export(file_path, format="mp3")
+        # converted_audio = original_audio.set_frame_rate(24000).set_channels(2).export(file_path, format="mp3")
 
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
