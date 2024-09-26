@@ -2,7 +2,8 @@
 pytubefix==7.0.0
 fastapi==0.103.2
 uvicorn==0.23.2
-openai==0.28.1
+# openai==0.28.1
+openai==1.48.0
 pydub==0.25.1
 pyTelegramBotAPI==4.14.0
 python-multipart==0.0.6

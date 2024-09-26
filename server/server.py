@@ -684,6 +684,7 @@ def transcribe_chunk(audio_path, api_key):
         response = openai.Audio.transcribe(
         file=audio_file,  
         model="whisper-1",
+        temperature=0,
         response_format="text"
         )
 
