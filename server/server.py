@@ -15,6 +15,7 @@ import telebot
 import requests
 import subprocess
 import re
+import json
 
 # Set up logging 
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +38,26 @@ logger.info(f'Setting FILE_URL: {server_file_url}')
 token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 # Initialize the bot
 bot = telebot.TeleBot(token)
+
+# Add this at the beginning of your script, after the imports
+USER_LANGUAGES = {}
+
+# Function to load user languages from a file
+def load_user_languages():
+    global USER_LANGUAGES
+    try:
+        with open('user_languages.json', 'r') as f:
+            USER_LANGUAGES = json.load(f)
+    except FileNotFoundError:
+        USER_LANGUAGES = {}
+
+# Function to save user languages to a file
+def save_user_languages():
+    with open('user_languages.json', 'w') as f:
+        json.dump(USER_LANGUAGES, f)
+
+# Call this function at the start of your script
+load_user_languages()
 
 class TranscriptionRequest(BaseModel):
     url: str
@@ -210,9 +231,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
                 chat_id=chat_id,
                 message_id=message_id
             )
-        # converted_audio = original_audio.set_frame_rate(16000).set_channels(1).export(file_path, format="mp3")
-        # converted_audio = original_audio.set_frame_rate(24000).set_channels(2).export(file_path, format="mp3")
-
+        
         logger.info('Transcribing audio..')
         transcribe_audio_file(file_path, bot, chat_id, message_id)
         logger.info('Transcription finished.')
@@ -225,6 +244,28 @@ async def call_message(request: Request, authorization: str = Header(None)):
 
 
     if 'text' in message:
+        # Add language setting command handling
+        if message['text'].startswith('/'):
+            lang = message['text'][1:].lower()
+            lang_list = [
+                'af', 'ar', 'hy', 'az', 'be', 'bs', 'bg', 'ca', 'zh', 
+                'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 
+                'gl', 'de', 'el', 'he', 'hi', 'hu', 'is', 'id', 
+                'it', 'ja', 'kn', 'kk', 'ko', 'lv', 'lt', 
+                'mk', 'ms', 'mi', 'mr', 'ne', 'no', 'fa',
+                'pl', 'pt', 'ro', 'ru', 'sr', 'sk',
+                'sl', 'es', 'sw', 'sv', 'tl', 
+                'ta', 'th', 'tr', 'uk', 
+                'ur', 'vi', 'cy'
+            ]
+            if lang in lang_list:
+                USER_LANGUAGES[str(message['from']['id'])] = lang
+                save_user_languages()
+                answer = f"Language set to {lang}"
+                return JSONResponse(content={
+                    "type": "text",
+                    "body": str(answer)
+                })
         # Add user CMD
         if message['text'].startswith('/add'):
             # Check is current user in atdmins.txt
@@ -537,7 +578,7 @@ def recognize_whisper(
         chunk_audio = AudioSegment.from_file(chunk_path)
 
         # Transcribe chunk
-        text = transcribe_chunk(chunk_path, api_key)
+        text = transcribe_chunk(chunk_path, chat_id)
         full_text += text
 
         # Remove the temporary chunk file
@@ -589,7 +630,7 @@ def recognize_whisper_memory_expensive(
         chunk_path = f"/tmp/{unique_id}.mp3"
         chunk.export(chunk_path, format="mp3")
 
-        text = transcribe_chunk(chunk_path, api_key)
+        text = transcribe_chunk(chunk_path, chat_id)
 
         full_text += text
 
@@ -603,7 +644,8 @@ def recognize_whisper_memory_expensive(
 
 
 
-def transcribe_chunk(audio_path, api_key):
+def transcribe_chunk(audio_path, user_id):
+    user_lang = USER_LANGUAGES.get(str(user_id), 'en')  # Default to English if not set
 
     with open(audio_path, "rb") as audio_file:
         response = client.audio.transcriptions.create(
@@ -611,7 +653,7 @@ def transcribe_chunk(audio_path, api_key):
             file=audio_file, 
             temperature=0,
             response_format="text",
-            language="en",
+            language=user_lang,
         )
 
     return response
