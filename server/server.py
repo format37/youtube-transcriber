@@ -70,9 +70,42 @@ if OPENAI_API_KEY == '':
     raise Exception("OPENAI_API_KEY environment variable not found")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+def get_language_name(lang_code):
+    language_names = {
+        'af': 'Afrikaans', 'ar': 'Arabic', 'hy': 'Armenian', 'az': 'Azerbaijani',
+        'be': 'Belarusian', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
+        'zh': 'Chinese', 'hr': 'Croatian', 'cs': 'Czech', 'da': 'Danish',
+        'nl': 'Dutch', 'en': 'English', 'et': 'Estonian', 'fi': 'Finnish',
+        'fr': 'French', 'gl': 'Galician', 'de': 'German', 'el': 'Greek',
+        'he': 'Hebrew', 'hi': 'Hindi', 'hu': 'Hungarian', 'is': 'Icelandic',
+        'id': 'Indonesian', 'it': 'Italian', 'ja': 'Japanese', 'kn': 'Kannada',
+        'kk': 'Kazakh', 'ko': 'Korean', 'lv': 'Latvian', 'lt': 'Lithuanian',
+        'mk': 'Macedonian', 'ms': 'Malay', 'mi': 'Maori', 'mr': 'Marathi',
+        'ne': 'Nepali', 'no': 'Norwegian', 'fa': 'Persian', 'pl': 'Polish',
+        'pt': 'Portuguese', 'ro': 'Romanian', 'ru': 'Russian', 'sr': 'Serbian',
+        'sk': 'Slovak', 'sl': 'Slovenian', 'es': 'Spanish', 'sw': 'Swahili',
+        'sv': 'Swedish', 'tl': 'Tagalog', 'ta': 'Tamil', 'th': 'Thai',
+        'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese',
+        'cy': 'Welsh'
+    }
+    return language_names.get(lang_code, 'Unknown')
+
 @app.post("/message")
 async def call_message(request: Request, authorization: str = Header(None)):
     logger.info('post: message')
+
+    lang_list = [
+                'af', 'ar', 'hy', 'az', 'be', 'bs', 'bg', 'ca', 'zh', 
+                'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 
+                'gl', 'de', 'el', 'he', 'hi', 'hu', 'is', 'id', 
+                'it', 'ja', 'kn', 'kk', 'ko', 'lv', 'lt', 
+                'mk', 'ms', 'mi', 'mr', 'ne', 'no', 'fa',
+                'pl', 'pt', 'ro', 'ru', 'sr', 'sk',
+                'sl', 'es', 'sw', 'sv', 'tl', 
+                'ta', 'th', 'tr', 'uk', 
+                'ur', 'vi', 'cy'
+            ]
+    
     token = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
@@ -244,20 +277,19 @@ async def call_message(request: Request, authorization: str = Header(None)):
 
 
     if 'text' in message:
+        if message['text'].lower() == '/languages':
+            # Create a formatted list of languages
+            lang_info = "Available languages:\n\n"
+            for lang in lang_list:
+                lang_info += f"/{lang} - {get_language_name(lang)}\n"
+            
+            return JSONResponse(content={
+                "type": "text",
+                "body": lang_info
+            })
         # Add language setting command handling
         if message['text'].startswith('/'):
             lang = message['text'][1:].lower()
-            lang_list = [
-                'af', 'ar', 'hy', 'az', 'be', 'bs', 'bg', 'ca', 'zh', 
-                'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 
-                'gl', 'de', 'el', 'he', 'hi', 'hu', 'is', 'id', 
-                'it', 'ja', 'kn', 'kk', 'ko', 'lv', 'lt', 
-                'mk', 'ms', 'mi', 'mr', 'ne', 'no', 'fa',
-                'pl', 'pt', 'ro', 'ru', 'sr', 'sk',
-                'sl', 'es', 'sw', 'sv', 'tl', 
-                'ta', 'th', 'tr', 'uk', 
-                'ur', 'vi', 'cy'
-            ]
             if lang in lang_list:
                 USER_LANGUAGES[str(message['from']['id'])] = lang
                 save_user_languages()
