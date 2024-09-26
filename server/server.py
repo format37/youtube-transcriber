@@ -610,7 +610,8 @@ def transcribe_chunk(audio_path, api_key):
             model="whisper-1", 
             file=audio_file, 
             temperature=0,
-            response_format="text"
+            response_format="text",
+            language="en",
         )
 
     return response
