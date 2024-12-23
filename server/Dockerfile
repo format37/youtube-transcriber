@@ -9,8 +9,8 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # RUN pip install ffmpeg-python[ffmpeg]
-RUN apt-get update && apt-get install -y ffmpeg
-RUN pip install ffmpeg-python
+RUN apt-get update && apt-get upgrade -y && apt-get install -y ffmpeg
+RUN pip install --upgrade ffmpeg-python
 
 # Copy the server.py file
 COPY server.py .

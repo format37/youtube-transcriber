@@ -1,9 +1,9 @@
 # pytube==15.0.0
-pytubefix==8.2.0
+pytubefix==8.8.2
 fastapi==0.103.2
 uvicorn==0.23.2
 # openai==0.28.1
-openai==1.48.0
+openai==1.58.1
 pydub==0.25.1
 pyTelegramBotAPI==4.14.0
 python-multipart==0.0.6
