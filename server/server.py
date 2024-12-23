@@ -232,43 +232,15 @@ async def call_message(request: Request, authorization: str = Header(None)):
         with open(file_path, "wb") as f:
             f.write(file_bytes)
 
-        # Load the audio file
-        try:
-            original_audio = AudioSegment.from_file(file_path)
-        except Exception as e:
-            logger.error(f'Error loading audio file: {e}')
-            bot.edit_message_text(
-                f"Canceled. Unsupported format.",
-                chat_id=chat_id,
-                message_id=message_id
-            )
-            # remove audio file
-            os.remove(file_path)
-            return JSONResponse(content={
-                "type": "empty",
-                "body": ""
-            })
+        # Re-encode to mp3 before transcribing
+        converted_path = reencode_to_mp3(file_path)
 
-        if ' ' in file_path:
-            logger.info(f'replacing space in file_path: {file_path}')
-            new_file_path = file_path.replace(' ', '_')
-            os.rename(file_path, new_file_path)
-            file_path = new_file_path
-            logger.info(f'new file_path: {file_path}')
+        # Now call transcribe_audio_file on the MP3
+        transcribe_audio_file(converted_path, bot, chat_id, message_id)
 
-        # Convert it to 16khz mono MP3
-        logger.info(f'converting audio to {file_path}')
-        # Edit message that Job has finished with text len
-        bot.edit_message_text(
-                f"Converting file..",
-                chat_id=chat_id,
-                message_id=message_id
-            )
-        
-        logger.info('Transcribing audio..')
-        transcribe_audio_file(file_path, bot, chat_id, message_id)
-        logger.info('Transcription finished.')
-        # os.remove(file_path)
+        # Optionally remove the original OGG if you like
+        os.remove(file_path)
+
         return JSONResponse(content={
             "type": "empty",
             "body": ""
@@ -689,6 +661,28 @@ def transcribe_chunk(audio_path, user_id):
         )
 
     return response
+
+
+def reencode_to_mp3(input_path: str) -> str:
+    """
+    Re-encodes a given input audio file (OGG/Opus, etc.) to MP3, 16kHz mono.
+    Returns the path to the newly created MP3 file.
+    """
+    output_path = os.path.join(
+        "./data",
+        f"{uuid.uuid4().hex}.mp3"
+    )
+
+    # Load the input file (let pydub attempt to detect format)
+    audio = AudioSegment.from_file(input_path)
+    
+    # Set sample rate and channels
+    audio = audio.set_frame_rate(16000).set_channels(1)
+    
+    # Export to MP3
+    audio.export(output_path, format="mp3", bitrate="128k")
+    
+    return output_path
 
 
 def main():
