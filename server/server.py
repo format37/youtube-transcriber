@@ -193,40 +193,7 @@ async def call_message(request: Request, authorization: str = Header(None)):
             # logger.info("["+str(chat_id)+"] Update message: " + str(update_message))
             message_id = update_message['result']['message_id']
 
-            try:
-                file_info = bot.get_file(file_id)
-                logger.info(f'file_id: {file_id}')
-                logger.info(f'file_info: {file_info}')
-                logger.info(f'file_path: {file_info.file_path}')
-                # Download the file contents 
-                with open(file_info.file_path, 'rb') as f:
-                    file_bytes = f.read()
-            except Exception as e:
-                logger.error(f'Error downloading file: {e}')
-                bot.edit_message_text(
-                    f"Canceled. Unable to download file. {e}",
-                    chat_id=chat_id,
-                    message_id=message_id
-                )
-                return JSONResponse(content={
-                    "type": "empty",
-                    "body": ""
-                })
-
-            # After downloading the file but before processing
-            logger.info(f'file_bytes: {len(file_bytes)}')
-            # Check if file is too large (e.g., over 50MB)
-            if len(file_bytes) > 50 * 1024 * 1024:  # 50MB in bytes
-                bot.edit_message_text(
-                    "File is too large. Please upload a file smaller than 50MB.",
-                    chat_id=chat_id,
-                    message_id=message_id
-                )
-                return JSONResponse(content={
-                    "type": "empty",
-                    "body": ""
-                })
-
+            # First determine the file name
             if 'audio' in message:
                 file_name = message[key]['file_name']
             elif 'voice' in message:
@@ -238,13 +205,64 @@ async def call_message(request: Request, authorization: str = Header(None)):
                     "type": "text",
                     "body": "Unsupported format"
                 })
-            # Add uuid before file_name
-            file_name = f'{uuid.uuid4().hex}_{file_name}'
-            file_path = os.path.join(data_path, file_name)
-            """with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file_bytes, buffer)"""
-            with open(file_path, "wb") as f:
-                f.write(file_bytes)
+            
+            # Check if we already have this file
+            existing_file = find_existing_file(data_path, file_name)
+            
+            if existing_file and os.path.exists(existing_file):
+                logger.info(f"Using existing file: {existing_file}")
+                file_path = existing_file
+                
+                # Update message to user
+                bot.edit_message_text(
+                    f"Found existing file. Processing...",
+                    chat_id=chat_id,
+                    message_id=message_id
+                )
+            else:
+                # Download the file as before
+                try:
+                    file_info = bot.get_file(file_id)
+                    logger.info(f'file_id: {file_id}')
+                    logger.info(f'file_info: {file_info}')
+                    logger.info(f'file_path: {file_info.file_path}')
+                    
+                    # Download the file contents 
+                    with open(file_info.file_path, 'rb') as f:
+                        file_bytes = f.read()
+                        
+                    logger.info(f'file_bytes: {len(file_bytes)}')
+                    
+                    # Check if file is too large
+                    if len(file_bytes) > 50 * 1024 * 1024:  # 50MB in bytes
+                        bot.edit_message_text(
+                            "File is too large. Please upload a file smaller than 50MB.",
+                            chat_id=chat_id,
+                            message_id=message_id
+                        )
+                        return JSONResponse(content={
+                            "type": "empty",
+                            "body": ""
+                        })
+                        
+                    # Add uuid before file_name
+                    file_name = f'{uuid.uuid4().hex}_{file_name}'
+                    file_path = os.path.join(data_path, file_name)
+                    
+                    with open(file_path, "wb") as f:
+                        f.write(file_bytes)
+                    
+                except Exception as e:
+                    logger.error(f'Error downloading file: {e}')
+                    bot.edit_message_text(
+                        f"Canceled. Unable to download file. {e}",
+                        chat_id=chat_id,
+                        message_id=message_id
+                    )
+                    return JSONResponse(content={
+                        "type": "empty",
+                        "body": ""
+                    })
 
             # Re-encode to mp3 before transcribing
             converted_path = reencode_to_mp3(file_path)
@@ -450,69 +468,140 @@ def transcribe(request_data: TranscriptionRequest):
 
 
 def transcribe_audio_file(audio_path, bot, chat_id, message_id):
-    if 'Error' in audio_path:
-        bot.edit_message_text(
-            audio_path,
-            chat_id=chat_id,
-            message_id=message_id
-        )
-        return {"transcription": audio_path}
-        
-    # Check audio duration before proceeding
+    """Transcribe an audio file and send the result to the user."""
     try:
-        cmd_duration = f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {audio_path}"
-        duration = float(os.popen(cmd_duration).read())
-        
-        # If audio is longer than 3 hours (10800 seconds), decline processing
-        if duration > 10800:  # 3 hours in seconds
-            message = "Audio file is too long (over 3 hours). Please upload a shorter file."
-            logger.info(f"[{chat_id}] {message}")
-            
+        if 'Error' in audio_path:
             bot.edit_message_text(
-                message,
+                audio_path,
                 chat_id=chat_id,
                 message_id=message_id
             )
-            return {"transcription": message}
-    except Exception as e:
-        logger.error(f"[{chat_id}] Error checking audio duration: {e}")
-    
-    # Transcribe audio
-    logger.info("["+str(chat_id)+"] Transcribing audio file..")
-    text = recognize_whisper(
-        audio_path, 
-        OPENAI_API_KEY,
-        chat_id,
-        message_id,
-        bot
+            return {"transcription": audio_path}
+            
+        # Check if file exists
+        if not os.path.exists(audio_path):
+            error_msg = f"Audio file not found: {audio_path}"
+            logger.error(f"[{chat_id}] {error_msg}")
+            bot.edit_message_text(
+                error_msg,
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            return {"transcription": error_msg}
+        
+        # Log file size
+        file_size = os.path.getsize(audio_path)
+        logger.info(f"[{chat_id}] Processing file of size: {file_size} bytes")
+        
+        # Check audio duration before proceeding
+        try:
+            cmd_duration = f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {audio_path}"
+            duration_output = os.popen(cmd_duration).read().strip()
+            
+            if not duration_output:
+                error_msg = f"Failed to get duration for {audio_path}"
+                logger.error(f"[{chat_id}] {error_msg}")
+                bot.edit_message_text(
+                    error_msg,
+                    chat_id=chat_id,
+                    message_id=message_id
+                )
+                return {"transcription": error_msg}
+                
+            duration = float(duration_output)
+            logger.info(f"[{chat_id}] Audio duration: {duration} seconds")
+            
+            # If audio is longer than 3 hours (10800 seconds), decline processing
+            if duration > 10800:  # 3 hours in seconds
+                message = "Audio file is too long (over 3 hours). Please upload a shorter file."
+                logger.info(f"[{chat_id}] {message}")
+                
+                bot.edit_message_text(
+                    message,
+                    chat_id=chat_id,
+                    message_id=message_id
+                )
+                return {"transcription": message}
+        except Exception as e:
+            logger.error(f"[{chat_id}] Error checking audio duration: {e}")
+            # Continue anyway if we couldn't check duration
+        
+        # Transcribe audio
+        logger.info(f"[{chat_id}] Transcribing audio file...")
+        
+        # Update message to indicate transcription is starting
+        bot.edit_message_text(
+            "Starting transcription process...",
+            chat_id=chat_id,
+            message_id=message_id
         )
+        
+        text = recognize_whisper(
+            audio_path, 
+            OPENAI_API_KEY,
+            chat_id,
+            message_id,
+            bot
+        )
+        
+        # If transcription result is empty or error message
+        if not text or text.startswith("Error"):
+            error_msg = f"Transcription failed or returned empty result: {text}"
+            logger.error(f"[{chat_id}] {error_msg}")
+            bot.edit_message_text(
+                error_msg,
+                chat_id=chat_id,
+                message_id=message_id
+            )
+            return {"transcription": error_msg or "Empty transcription result"}
 
-    # Remove audio
-    logger.info("["+str(chat_id)+"] Removing audio file..")
-    os.remove(audio_path)
+        # Log transcription length
+        logger.info(f"[{chat_id}] Transcription length: {len(text)}")
 
-    # Log transcription length
-    logger.info("["+str(chat_id)+"] Transcription length: " + str(len(text)))
+        # Remove the audio file if it's a temporary file
+        try:
+            if os.path.exists(audio_path) and "_temp_" in audio_path:
+                logger.info(f"[{chat_id}] Removing temporary audio file: {audio_path}")
+                os.remove(audio_path)
+        except Exception as e:
+            logger.error(f"[{chat_id}] Error removing audio file: {e}")
+            # Continue anyway if we couldn't remove the file
 
-    # Edit message that Job has finished with text len
-    bot.edit_message_text(
+        # Edit message that Job has finished with text len
+        bot.edit_message_text(
             f"Transcription finished. Text length: {len(text)}",
             chat_id=chat_id,
             message_id=message_id
         )
 
-    # Send the transcription
-    filename = f'./data/{uuid.uuid4().hex}.txt'
+        # Send the transcription
+        filename = f'./data/{uuid.uuid4().hex}.txt'
 
-    with open(filename, 'w') as f:
-        f.write(text)
+        with open(filename, 'w') as f:
+            f.write(text)
 
-    with open(filename, 'rb') as f:
-        bot.send_document(
-            chat_id, 
-            f
-        )
-    os.remove(filename)
+        with open(filename, 'rb') as f:
+            bot.send_document(
+                chat_id, 
+                f
+            )
+        os.remove(filename)
+        
+        return {"transcription": "Success"}
+        
+    except Exception as e:
+        error_msg = f"Error in transcribe_audio_file: {str(e)}"
+        logger.error(f"[{chat_id}] {error_msg}")
+        try:
+            bot.edit_message_text(
+                f"Error during transcription: {str(e)}",
+                chat_id=chat_id,
+                message_id=message_id
+            )
+        except Exception as e2:
+            logger.error(f"[{chat_id}] Failed to send error message: {str(e2)}")
+        
+        return {"transcription": error_msg}
 
 
 def download_video(url):
@@ -581,38 +670,77 @@ def split_audio_ffmpeg(audio_path, chunk_length=10*60):
     Returns a list of paths to the chunks.
     """
     try:
+        # Check if file exists
+        if not os.path.exists(audio_path):
+            logger.error(f"File not found: {audio_path}")
+            return []
+            
         # Get the duration of the audio in seconds
-        cmd_duration = f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {audio_path}"
+        cmd_duration = f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{audio_path}\""
+        logger.info(f"Running duration command: {cmd_duration}")
         duration_output = os.popen(cmd_duration).read().strip()
         
         if not duration_output:
             logger.error(f"Failed to get duration for {audio_path}")
-            return []
             
-        duration = float(duration_output)
-        logger.info(f"Audio duration: {duration} seconds")
+            # Try alternative method
+            logger.info("Trying alternative method to get duration")
+            try:
+                audio = AudioSegment.from_file(audio_path)
+                duration = len(audio) / 1000.0  # Convert milliseconds to seconds
+                logger.info(f"Got duration using AudioSegment: {duration} seconds")
+            except Exception as e:
+                logger.error(f"Alternative duration method failed: {e}")
+                return []
+        else:
+            duration = float(duration_output)
+            logger.info(f"Audio duration: {duration} seconds")
         
         # Calculate number of chunks
         chunks_count = int(duration // chunk_length) + (1 if duration % chunk_length > 0 else 0)
         logger.info(f"Splitting into {chunks_count} chunks")
         
+        # For very short files, just return the original
+        if chunks_count <= 1 and duration < chunk_length:
+            logger.info(f"Audio is short enough, skipping split")
+            return [audio_path]
+        
         chunk_paths = []
         
         for i in range(chunks_count):
             start_time = i * chunk_length
+            remaining_duration = duration - start_time
+            # Adjust chunk length for last chunk if needed
+            current_chunk_length = min(chunk_length, remaining_duration)
+            
             # Unique filename for the chunk
             chunk_filename = f"/tmp/{uuid.uuid4()}.mp3"
-            # Use ffmpeg to extract a chunk of the audio
-            cmd_extract = f"ffmpeg -ss {start_time} -t {chunk_length} -i {audio_path} -acodec copy {chunk_filename}"
+            
+            # Use ffmpeg to extract a chunk of the audio - with quotes for paths with spaces
+            cmd_extract = f'ffmpeg -ss {start_time} -t {current_chunk_length} -i "{audio_path}" -acodec copy "{chunk_filename}" -y'
+            logger.info(f"Running command: {cmd_extract}")
             
             result = os.system(cmd_extract)
             if result != 0:
                 logger.error(f"Error extracting chunk {i+1} with command: {cmd_extract}")
-                continue
+                
+                # Try alternative method with pydub
+                try:
+                    logger.info(f"Trying alternative method to extract chunk {i+1}")
+                    audio = AudioSegment.from_file(audio_path)
+                    start_ms = int(start_time * 1000)
+                    end_ms = int(min(duration, start_time + current_chunk_length) * 1000)
+                    chunk = audio[start_ms:end_ms]
+                    chunk.export(chunk_filename, format="mp3")
+                    logger.info(f"Successfully extracted chunk using pydub")
+                except Exception as e:
+                    logger.error(f"Alternative extraction method failed: {e}")
+                    continue
                 
             # Verify the chunk file exists and has a non-zero size
             if os.path.exists(chunk_filename) and os.path.getsize(chunk_filename) > 0:
                 chunk_paths.append(chunk_filename)
+                logger.info(f"Successfully created chunk {i+1}: {chunk_filename}")
             else:
                 logger.error(f"Chunk file {chunk_filename} does not exist or is empty")
         
@@ -738,21 +866,47 @@ def transcribe_chunk(audio_path, user_id):
     user_lang = USER_LANGUAGES.get(str(user_id), 'en')  # Default to English if not set
     
     try:
+        # Check if file exists
+        if not os.path.exists(audio_path):
+            logger.error(f"Chunk file not found: {audio_path}")
+            return "\n[Transcription error: File not found]\n"
+            
+        # Log chunk file size
+        file_size = os.path.getsize(audio_path)
+        logger.info(f"Transcribing chunk of size: {file_size} bytes")
+        
+        # Check if file is empty
+        if file_size == 0:
+            logger.error(f"Chunk file is empty: {audio_path}")
+            return "\n[Transcription error: Empty file]\n"
+            
         with open(audio_path, "rb") as audio_file:
             # Add timeout parameters to avoid hanging
+            logger.info(f"Sending chunk to OpenAI API with language: {user_lang}")
             response = client.audio.transcriptions.create(
                 model="whisper-1", 
                 file=audio_file, 
                 temperature=0,
                 response_format="text",
                 language=user_lang,
-                timeout=300  # 5 minute timeout
+                timeout=600  # 10 minute timeout
             )
+            
+        logger.info(f"Received transcription of length: {len(response)}")
         return response
+        
     except Exception as e:
-        logger.error(f"Error transcribing chunk for user {user_id}: {str(e)}")
-        # Return empty string to avoid breaking the whole process
-        return f"\n[Transcription error: {str(e)}]\n"
+        error_message = str(e)
+        logger.error(f"Error transcribing chunk for user {user_id}: {error_message}")
+        
+        # More specific error messages based on the exception
+        if "timed out" in error_message.lower():
+            return "\n[Transcription error: API request timed out. The chunk may be too large.]\n"
+        elif "too large" in error_message.lower():
+            return "\n[Transcription error: File too large for the API.]\n"
+        else:
+            # Return empty string to avoid breaking the whole process
+            return f"\n[Transcription error: {error_message}]\n"
 
 
 def reencode_to_mp3(input_path: str) -> str:
@@ -760,21 +914,66 @@ def reencode_to_mp3(input_path: str) -> str:
     Re-encodes a given input audio file (OGG/Opus, etc.) to MP3, 16kHz mono.
     Returns the path to the newly created MP3 file.
     """
-    output_path = os.path.join(
-        "./data",
-        f"{uuid.uuid4().hex}.mp3"
-    )
-
-    # Load the input file (let pydub attempt to detect format)
-    audio = AudioSegment.from_file(input_path)
-    
-    # Set sample rate and channels
-    audio = audio.set_frame_rate(16000).set_channels(1)
-    
-    # Export to MP3
-    audio.export(output_path, format="mp3", bitrate="128k")
-    
-    return output_path
+    try:
+        output_path = os.path.join(
+            "./data",
+            f"{uuid.uuid4().hex}.mp3"
+        )
+        
+        logger.info(f"Re-encoding {input_path} to {output_path}")
+        
+        # Check if input file exists
+        if not os.path.exists(input_path):
+            logger.error(f"Input file not found: {input_path}")
+            return f"Error: Input file not found: {input_path}"
+            
+        # Try using pydub first
+        try:
+            # Load the input file (let pydub attempt to detect format)
+            audio = AudioSegment.from_file(input_path)
+            
+            # Set sample rate and channels
+            audio = audio.set_frame_rate(16000).set_channels(1)
+            
+            # Export to MP3
+            audio.export(output_path, format="mp3", bitrate="128k")
+            
+            # Verify the output file exists and has non-zero size
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                logger.info(f"Successfully re-encoded to {output_path}")
+                return output_path
+                
+            logger.error("Re-encoded file is empty or doesn't exist")
+            
+        except Exception as e:
+            logger.error(f"Error using pydub for re-encoding: {e}")
+            # Fall back to ffmpeg directly
+            
+        # Fall back to ffmpeg directly
+        try:
+            cmd = f'ffmpeg -i "{input_path}" -ar 16000 -ac 1 -b:a 128k "{output_path}" -y'
+            logger.info(f"Running ffmpeg command: {cmd}")
+            
+            result = os.system(cmd)
+            if result != 0:
+                logger.error(f"ffmpeg command failed with result: {result}")
+                return f"Error: ffmpeg command failed: {cmd}"
+                
+            # Verify the output file exists and has non-zero size
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                logger.info(f"Successfully re-encoded to {output_path}")
+                return output_path
+                
+            logger.error("Re-encoded file is empty or doesn't exist")
+            return f"Error: Re-encoding failed, output file is empty or missing: {output_path}"
+            
+        except Exception as e:
+            logger.error(f"Error using direct ffmpeg for re-encoding: {e}")
+            return f"Error: Re-encoding with ffmpeg failed: {str(e)}"
+            
+    except Exception as e:
+        logger.error(f"Error in reencode_to_mp3: {str(e)}")
+        return f"Error: {str(e)}"
 
 
 def main():
@@ -783,3 +982,39 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Add this function to check for existing files with the same name
+def find_existing_file(directory, file_name):
+    """
+    Searches the directory for files that contain the same name after the UUID prefix.
+    Returns the path if found, None otherwise.
+    """
+    try:
+        # Remove any directories from the file_name
+        base_file_name = os.path.basename(file_name)
+        
+        # If the filename already has a UUID prefix, extract the actual filename
+        if '_' in base_file_name and len(base_file_name.split('_', 1)[0]) == 32:
+            search_name = base_file_name.split('_', 1)[1]
+        else:
+            search_name = base_file_name
+            
+        logger.info(f"Searching for existing files matching: {search_name}")
+        
+        for filename in os.listdir(directory):
+            # Skip directories
+            if os.path.isdir(os.path.join(directory, filename)):
+                continue
+                
+            # If this file has a UUID prefix, check the actual filename
+            if '_' in filename and len(filename.split('_', 1)[0]) == 32:
+                existing_name = filename.split('_', 1)[1]
+                if existing_name == search_name:
+                    logger.info(f"Found existing file: {filename}")
+                    return os.path.join(directory, filename)
+        
+        logger.info(f"No existing file found for: {search_name}")
+        return None
+    except Exception as e:
+        logger.error(f"Error searching for existing file: {e}")
+        return None
