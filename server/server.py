@@ -926,49 +926,72 @@ def reencode_to_mp3(input_path: str) -> str:
         if not os.path.exists(input_path):
             logger.error(f"Input file not found: {input_path}")
             return f"Error: Input file not found: {input_path}"
-            
-        # Try using pydub first
+        
+        # Skip re-encoding if file seems to be already in the right format
+        # This helps with large files that might cause memory issues
+        if input_path.lower().endswith('.mp3'):
+            # Just copy the file instead of re-encoding
+            try:
+                # Use the subprocess method which is more memory efficient
+                cmd = f'cp "{input_path}" "{output_path}"'
+                logger.info(f"Copying MP3 file instead of re-encoding: {cmd}")
+                
+                result = os.system(cmd)
+                if result == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    logger.info(f"Successfully copied to {output_path}")
+                    return output_path
+                else:
+                    logger.warning(f"Copy failed, falling back to re-encoding")
+            except Exception as e:
+                logger.error(f"Error copying file: {e}")
+                # Continue to re-encoding as fallback
+        
+        # Use ffmpeg directly with subprocess (more controlled and memory efficient)
         try:
-            # Load the input file (let pydub attempt to detect format)
-            audio = AudioSegment.from_file(input_path)
+            # Use subprocess instead of os.system for better control
+            cmd = [
+                'ffmpeg',
+                '-i', input_path,
+                '-ar', '16000',  # 16kHz sample rate
+                '-ac', '1',      # mono channel
+                '-b:a', '128k',  # 128kbps bitrate
+                '-y',            # overwrite if exists
+                output_path
+            ]
             
-            # Set sample rate and channels
-            audio = audio.set_frame_rate(16000).set_channels(1)
+            logger.info(f"Running ffmpeg command: {' '.join(cmd)}")
             
-            # Export to MP3
-            audio.export(output_path, format="mp3", bitrate="128k")
+            # Run with timeout and capture output
+            process = subprocess.Popen(
+                cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE
+            )
             
-            # Verify the output file exists and has non-zero size
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                logger.info(f"Successfully re-encoded to {output_path}")
-                return output_path
+            # Set a timeout (5 minutes)
+            try:
+                stdout, stderr = process.communicate(timeout=300)
                 
-            logger.error("Re-encoded file is empty or doesn't exist")
-            
+                if process.returncode != 0:
+                    logger.error(f"ffmpeg failed with code {process.returncode}: {stderr.decode('utf-8', errors='ignore')}")
+                    return f"Error: ffmpeg command failed with code {process.returncode}"
+                
+                # Verify the output file exists and has non-zero size
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    logger.info(f"Successfully re-encoded to {output_path}")
+                    return output_path
+                
+                logger.error("Re-encoded file is empty or doesn't exist")
+                return f"Error: Re-encoding failed, output file is empty or missing: {output_path}"
+                
+            except subprocess.TimeoutExpired:
+                # Kill the process if it times out
+                process.kill()
+                logger.error("ffmpeg process timed out after 5 minutes")
+                return "Error: Re-encoding process timed out"
+                
         except Exception as e:
-            logger.error(f"Error using pydub for re-encoding: {e}")
-            # Fall back to ffmpeg directly
-            
-        # Fall back to ffmpeg directly
-        try:
-            cmd = f'ffmpeg -i "{input_path}" -ar 16000 -ac 1 -b:a 128k "{output_path}" -y'
-            logger.info(f"Running ffmpeg command: {cmd}")
-            
-            result = os.system(cmd)
-            if result != 0:
-                logger.error(f"ffmpeg command failed with result: {result}")
-                return f"Error: ffmpeg command failed: {cmd}"
-                
-            # Verify the output file exists and has non-zero size
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                logger.info(f"Successfully re-encoded to {output_path}")
-                return output_path
-                
-            logger.error("Re-encoded file is empty or doesn't exist")
-            return f"Error: Re-encoding failed, output file is empty or missing: {output_path}"
-            
-        except Exception as e:
-            logger.error(f"Error using direct ffmpeg for re-encoding: {e}")
+            logger.error(f"Error using subprocess for re-encoding: {str(e)}")
             return f"Error: Re-encoding with ffmpeg failed: {str(e)}"
             
     except Exception as e:
