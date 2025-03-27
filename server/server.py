@@ -511,8 +511,8 @@ def transcribe_audio_file(audio_path, bot, chat_id, message_id):
             duration = float(duration_output)
             logger.info(f"[{chat_id}] Audio duration: {duration} seconds")
             
-            # If audio is longer than 3 hours (10800 seconds), decline processing
-            if duration > 10800:  # 3 hours in seconds
+            # If audio is longer than 9 hours (32400 seconds), decline processing
+            if duration > 32400:  # 9 hours in seconds
                 message = "Audio file is too long (over 3 hours). Please upload a shorter file."
                 logger.info(f"[{chat_id}] {message}")
                 
